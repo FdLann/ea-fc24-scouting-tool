@@ -313,40 +313,59 @@ export default function ShortlistPage() {
 
         {/* Mobile Only View */}
         <div className="mobile-only-cards">
-          {sortedPlayers.map((player) => (
-            <div key={player.player_id} className="mobile-player-card" onClick={() => router.push(`/players/${player.player_id}`)}>
-              {/* Left OVR/POT Badges */}
-              <div className="mobile-card-left">
-                <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
-                  {player.overall}
-                </span>
-                <span className="badge-pos" style={{ fontSize: '0.7rem', padding: '1px 4px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
-                  {player.player_positions.split(',')[0]}
-                </span>
-              </div>
-              
-              {/* Center Name/Club */}
-              <div className="mobile-card-center">
-                <div className="mobile-card-name">{player.short_name}</div>
-                <div className="mobile-card-club">
-                  {player.club_name || 'Free Agent'} • {player.age} yrs
+          {sortedPlayers.map((player) => {
+            const ovrClass = player.overall >= 85 ? 'badge-box-ovr' : player.overall >= 75 ? 'badge-box-ovr-silver' : 'badge-box-ovr-bronze';
+            const potClass = player.potential >= 88 ? 'badge-box-pot-high' : 'badge-box-pot';
+
+            return (
+              <div key={player.player_id} className="mobile-player-card" onClick={() => router.push(`/players/${player.player_id}`)}>
+                {/* Top Row: Name + Subinfo & Dual Badges (OVR & POT) */}
+                <div className="mobile-card-top-row">
+                  <div className="mobile-card-identity">
+                    <div className="mobile-card-name">{player.short_name}</div>
+                    <div className="mobile-card-subinfo">
+                      {(player.club_name || 'Free Agent').toUpperCase()} &bull; {(player.league_name || 'No League').toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="mobile-card-badges-pair">
+                    <div className={`badge-box ${ovrClass}`} title={`Overall: ${player.overall}`}>
+                      {player.overall}
+                    </div>
+                    <div className={`badge-box ${potClass}`} title={`Potential: ${player.potential}`}>
+                      {player.potential}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Bottom Row: Positions + Financials + Trash Button */}
+                <div className="mobile-card-bottom-row">
+                  <div className="mobile-card-positions">
+                    {player.player_positions.split(',').map((pos: string) => (
+                      <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`}>
+                        {pos.trim()}
+                      </span>
+                    ))}
+                    <span className="mobile-card-age">&bull; {player.age} yrs</span>
+                  </div>
+
+                  <div className="mobile-card-financials">
+                    <div className="mobile-financial-item">
+                      <span className="mobile-val-text">{formatCurrency(player.value_eur)}</span>
+                      <span className="mobile-wage-text">{formatCurrency(player.wage_eur)}/wk</span>
+                    </div>
+                    <button 
+                      type="button"
+                      className="mobile-star-btn"
+                      onClick={(e) => removePlayer(player.player_id, e)}
+                      title="Remove from shortlist"
+                    >
+                      <Trash2 size={16} color="var(--accent-red)" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              {/* Right Value/Wage & Trash */}
-              <div className="mobile-card-right">
-                <div className="mobile-card-val text-green">{formatCurrency(player.value_eur)}</div>
-                <div className="mobile-card-wage text-gold">{formatCurrency(player.wage_eur)} / wk</div>
-                <button 
-                  onClick={(e) => removePlayer(player.player_id, e)}
-                  className="btn btn-secondary btn-danger"
-                  style={{ padding: '0.4rem', borderRadius: '4px', border: 'none', background: 'rgba(255, 82, 82, 0.1)', marginTop: '0.2rem' }}
-                >
-                  <Trash2 size={12} style={{ color: 'var(--accent-red)' }} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       )}

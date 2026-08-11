@@ -761,33 +761,53 @@ export default function ScoutingClient({
         ) : (
           initialPlayers.map((player) => {
             const isStarred = shortlist.includes(player.player_id);
+            const ovrClass = player.overall >= 85 ? 'badge-box-ovr' : player.overall >= 75 ? 'badge-box-ovr-silver' : 'badge-box-ovr-bronze';
+            const potClass = player.potential >= 88 ? 'badge-box-pot-high' : 'badge-box-pot';
+
             return (
               <div key={player.player_id} className="mobile-player-card" onClick={() => router.push(`/players/${player.player_id}`)}>
-                <div className="mobile-card-badge">
-                  <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
-                    {player.overall}
-                  </span>
-                  <span className={`badge-pos ${getPositionBadgeClass(player.player_positions)}`}>
-                    {player.player_positions.split(',')[0].trim()}
-                  </span>
-                </div>
-                
-                <div className="mobile-card-center">
-                  <div className="mobile-card-name">{player.short_name}</div>
-                  <div className="mobile-card-meta">
-                    {player.club_name || 'Free Agent'} &bull; {player.nationality_name} &bull; {player.age} yrs
+                {/* Top Row: Name + Subinfo & Dual Badges (OVR & POT) */}
+                <div className="mobile-card-top-row">
+                  <div className="mobile-card-identity">
+                    <div className="mobile-card-name">{player.short_name}</div>
+                    <div className="mobile-card-subinfo">
+                      {(player.club_name || 'Free Agent').toUpperCase()} &bull; {(player.league_name || 'No League').toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="mobile-card-badges-pair">
+                    <div className={`badge-box ${ovrClass}`} title={`Overall: ${player.overall}`}>
+                      {player.overall}
+                    </div>
+                    <div className={`badge-box ${potClass}`} title={`Potential: ${player.potential}`}>
+                      {player.potential}
+                    </div>
                   </div>
                 </div>
                 
-                <div className="mobile-card-right">
-                  <div className="mobile-card-value">{formatCurrency(player.value_eur)}</div>
-                  <div className="mobile-card-wage">{formatCurrency(player.wage_eur)}/wk</div>
-                  <button 
-                    onClick={(e) => toggleShortlist(player.player_id, e)}
-                    style={{ background: 'none', border: 'none', color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)', cursor: 'pointer' }}
-                  >
-                    {isStarred ? <Star size={15} fill="var(--accent-gold)" /> : <Star size={15} />}
-                  </button>
+                {/* Bottom Row: Positions + Financials + Star */}
+                <div className="mobile-card-bottom-row">
+                  <div className="mobile-card-positions">
+                    {player.player_positions.split(',').map((pos: string) => (
+                      <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`}>
+                        {pos.trim()}
+                      </span>
+                    ))}
+                    <span className="mobile-card-age">&bull; {player.age} yrs</span>
+                  </div>
+
+                  <div className="mobile-card-financials">
+                    <div className="mobile-financial-item">
+                      <span className="mobile-val-text">{formatCurrency(player.value_eur)}</span>
+                      <span className="mobile-wage-text">{formatCurrency(player.wage_eur)}/wk</span>
+                    </div>
+                    <button 
+                      type="button"
+                      className="mobile-star-btn"
+                      onClick={(e) => toggleShortlist(player.player_id, e)}
+                    >
+                      {isStarred ? <Star size={16} fill="var(--accent-gold)" color="var(--accent-gold)" /> : <Star size={16} color="var(--text-muted)" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
