@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Player } from './page';
@@ -15,6 +15,7 @@ interface ScoutingClientProps {
     clubs: string[];
     leagues: string[];
     nationalities: string[];
+    leagueClubs?: Record<string, string[]>;
   };
   pagination: {
     total: number;
@@ -122,6 +123,14 @@ export default function ScoutingClient({
   const [maxDefending, setMaxDefending] = useState(searchParams.max_defending || '99');
   const [minPhysic, setMinPhysic] = useState(searchParams.min_physic || '0');
   const [maxPhysic, setMaxPhysic] = useState(searchParams.max_physic || '99');
+
+  // Filter available clubs dynamically based on selected league
+  const availableClubs = useMemo(() => {
+    if (leagueVal && metadata.leagueClubs && metadata.leagueClubs[leagueVal]) {
+      return metadata.leagueClubs[leagueVal];
+    }
+    return metadata.clubs;
+  }, [leagueVal, metadata]);
 
   // Trigger search updates (re-build query string and reload route)
   const applyFilters = (updates: { [key: string]: any }) => {
@@ -424,8 +433,10 @@ export default function ScoutingClient({
               className="filter-input"
               value={leagueVal}
               onChange={(e) => {
-                setLeagueVal(e.target.value);
-                applyFilters({ league: e.target.value, club: '' });
+                const newLeague = e.target.value;
+                setLeagueVal(newLeague);
+                setClubVal('');
+                applyFilters({ league: newLeague, club: '' });
               }}
             >
               <option value="">All Leagues</option>
@@ -435,9 +446,11 @@ export default function ScoutingClient({
             </select>
           </div>
 
-          {/* Club */}
+          {/* Club (Filtered by selected League) */}
           <div className="filter-group">
-            <label className="filter-label">Club</label>
+            <label className="filter-label">
+              Club {leagueVal ? `(${availableClubs.length})` : ''}
+            </label>
             <select
               className="filter-input"
               value={clubVal}
@@ -446,8 +459,10 @@ export default function ScoutingClient({
                 applyFilters({ club: e.target.value });
               }}
             >
-              <option value="">All Clubs</option>
-              {metadata.clubs.map(c => (
+              <option value="">
+                {leagueVal ? `All Clubs in ${leagueVal}` : 'All Clubs'}
+              </option>
+              {availableClubs.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>

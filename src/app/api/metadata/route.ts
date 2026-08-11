@@ -4,11 +4,13 @@ import db from '@/lib/db';
 interface ClubRow { club_name: string; }
 interface LeagueRow { league_name: string; }
 interface NationRow { nationality_name: string; }
+interface LeagueClubRow { club_name: string; league_name: string; }
 
 let cache: {
   clubs: string[];
   leagues: string[];
   nationalities: string[];
+  leagueClubs: Record<string, string[]>;
 } | null = null;
 
 export async function GET() {
@@ -43,8 +45,24 @@ export async function GET() {
       ORDER BY nationality_name ASC
     `).all() as NationRow[];
     const nationalities = nationalitiesResult.map(n => n.nationality_name);
+
+    // Fetch league to clubs mapping
+    const leagueClubsResult = db.prepare(`
+      SELECT DISTINCT club_name, league_name 
+      FROM players 
+      WHERE club_name IS NOT NULL AND club_name != '' AND league_name IS NOT NULL AND league_name != ''
+      ORDER BY club_name ASC
+    `).all() as LeagueClubRow[];
+
+    const leagueClubs: Record<string, string[]> = {};
+    leagueClubsResult.forEach(row => {
+      if (!leagueClubs[row.league_name]) {
+        leagueClubs[row.league_name] = [];
+      }
+      leagueClubs[row.league_name].push(row.club_name);
+    });
     
-    cache = { clubs, leagues, nationalities };
+    cache = { clubs, leagues, nationalities, leagueClubs };
     
     return NextResponse.json(cache);
   } catch (error: any) {

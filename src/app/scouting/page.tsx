@@ -174,15 +174,25 @@ export default async function ScoutingPage({ searchParams }: PageProps) {
     LIMIT ? OFFSET ?
   `).all(...queryParams, limit, offset) as Player[];
 
-  // Fetch filter metadata (clubs, leagues, nationalities) - cached or fast query
+  // Fetch filter metadata (clubs, leagues, nationalities, leagueClubs)
   const clubsResult = db.prepare(`SELECT DISTINCT club_name FROM players WHERE club_name IS NOT NULL AND club_name != '' ORDER BY club_name ASC`).all() as { club_name: string }[];
   const leaguesResult = db.prepare(`SELECT DISTINCT league_name FROM players WHERE league_name IS NOT NULL AND league_name != '' ORDER BY league_name ASC`).all() as { league_name: string }[];
   const nationsResult = db.prepare(`SELECT DISTINCT nationality_name FROM players WHERE nationality_name IS NOT NULL AND nationality_name != '' ORDER BY nationality_name ASC`).all() as { nationality_name: string }[];
+  const leagueClubsResult = db.prepare(`SELECT DISTINCT club_name, league_name FROM players WHERE club_name IS NOT NULL AND club_name != '' AND league_name IS NOT NULL AND league_name != '' ORDER BY club_name ASC`).all() as { club_name: string; league_name: string }[];
+
+  const leagueClubs: Record<string, string[]> = {};
+  leagueClubsResult.forEach(row => {
+    if (!leagueClubs[row.league_name]) {
+      leagueClubs[row.league_name] = [];
+    }
+    leagueClubs[row.league_name].push(row.club_name);
+  });
 
   const metadata = {
     clubs: clubsResult.map(c => c.club_name),
     leagues: leaguesResult.map(l => l.league_name),
-    nationalities: nationsResult.map(n => n.nationality_name)
+    nationalities: nationsResult.map(n => n.nationality_name),
+    leagueClubs
   };
 
   const pagination = {
