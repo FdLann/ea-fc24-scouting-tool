@@ -1,0 +1,780 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { Player } from './page';
+import { 
+  Search, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, 
+  Star, StarOff, FilterX, HelpCircle, Eye, Menu, X
+} from 'lucide-react';
+
+interface ScoutingClientProps {
+  initialPlayers: Player[];
+  metadata: {
+    clubs: string[];
+    leagues: string[];
+    nationalities: string[];
+  };
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  searchParams: { [key: string]: any };
+}
+
+export default function ScoutingClient({ 
+  initialPlayers, 
+  metadata, 
+  pagination, 
+  searchParams 
+}: ScoutingClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Local state for sidebar visibility on mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Local state for Accordions in filters
+  const [isSkillsOpen, setIsSkillsOpen] = useState(false);
+  
+  // Local state for shortlist player IDs
+  const [shortlist, setShortlist] = useState<number[]>([]);
+
+  // Load shortlist on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('fc24_shortlist');
+    if (saved) {
+      try {
+        setShortlist(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  // Toggle Shortlist function
+  const toggleShortlist = (playerId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let updated: number[];
+    if (shortlist.includes(playerId)) {
+      updated = shortlist.filter(id => id !== playerId);
+    } else {
+      updated = [...shortlist, playerId];
+    }
+    setShortlist(updated);
+    localStorage.setItem('fc24_shortlist', JSON.stringify(updated));
+  };
+
+  // Helper to get rating badge class
+  const getRatingBadgeClass = (rating: number) => {
+    if (rating >= 85) return 'badge-gold';
+    if (rating >= 75) return 'badge-silver';
+    return 'badge-bronze';
+  };
+
+  // Helper to get position badge class
+  const getPositionBadgeClass = (positions: string) => {
+    const primary = positions.split(',')[0].trim().toUpperCase();
+    if (primary === 'GK') return 'pos-gk';
+    if (['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(primary)) return 'pos-def';
+    if (['CM', 'CDM', 'CAM', 'LM', 'RM'].includes(primary)) return 'pos-mid';
+    return 'pos-fwd';
+  };
+
+  // Helper to format currency
+  const formatCurrency = (value: number | null) => {
+    if (value === null || value === undefined) return '€0';
+    if (value >= 1000000) {
+      return `€${(value / 1000000).toFixed(1)}M`;
+    }
+    if (value >= 1000) {
+      return `€${(value / 1000).toFixed(0)}K`;
+    }
+    return `€${value}`;
+  };
+
+  // State values initialized from searchParams (sync UI with URL)
+  const [searchVal, setSearchVal] = useState(searchParams.search || '');
+  const [positionVal, setPositionVal] = useState(searchParams.position || '');
+  const [clubVal, setClubVal] = useState(searchParams.club || '');
+  const [leagueVal, setLeagueVal] = useState(searchParams.league || '');
+  const [nationalityVal, setNationalityVal] = useState(searchParams.nationality || '');
+  const [minOvr, setMinOvr] = useState(searchParams.min_overall || '0');
+  const [maxOvr, setMaxOvr] = useState(searchParams.max_overall || '99');
+  const [minPot, setMinPot] = useState(searchParams.min_potential || '0');
+  const [maxPot, setMaxPot] = useState(searchParams.max_potential || '99');
+  const [minAgeVal, setMinAgeVal] = useState(searchParams.min_age || '15');
+  const [maxAgeVal, setMaxAgeVal] = useState(searchParams.max_age || '50');
+
+  // Skill Filters state
+  const [minPace, setMinPace] = useState(searchParams.min_pace || '0');
+  const [maxPace, setMaxPace] = useState(searchParams.max_pace || '99');
+  const [minShooting, setMinShooting] = useState(searchParams.min_shooting || '0');
+  const [maxShooting, setMaxShooting] = useState(searchParams.max_shooting || '99');
+  const [minPassing, setMinPassing] = useState(searchParams.min_passing || '0');
+  const [maxPassing, setMaxPassing] = useState(searchParams.max_passing || '99');
+  const [minDribbling, setMinDribbling] = useState(searchParams.min_dribbling || '0');
+  const [maxDribbling, setMaxDribbling] = useState(searchParams.max_dribbling || '99');
+  const [minDefending, setMinDefending] = useState(searchParams.min_defending || '0');
+  const [maxDefending, setMaxDefending] = useState(searchParams.max_defending || '99');
+  const [minPhysic, setMinPhysic] = useState(searchParams.min_physic || '0');
+  const [maxPhysic, setMaxPhysic] = useState(searchParams.max_physic || '99');
+
+  // Trigger search updates (re-build query string and reload route)
+  const applyFilters = (updates: { [key: string]: any }) => {
+    const params = new URLSearchParams();
+    
+    // Core parameters to keep/set
+    const current = {
+      search: searchVal,
+      position: positionVal,
+      club: clubVal,
+      league: leagueVal,
+      nationality: nationalityVal,
+      min_overall: minOvr,
+      max_overall: maxOvr,
+      min_potential: minPot,
+      max_potential: maxPot,
+      min_age: minAgeVal,
+      max_age: maxAgeVal,
+      min_pace: minPace,
+      max_pace: maxPace,
+      min_shooting: minShooting,
+      max_shooting: maxShooting,
+      min_passing: minPassing,
+      max_passing: maxPassing,
+      min_dribbling: minDribbling,
+      max_dribbling: maxDribbling,
+      min_defending: minDefending,
+      max_defending: maxDefending,
+      min_physic: minPhysic,
+      max_physic: maxPhysic,
+      sort_by: searchParams.sort_by || 'overall',
+      sort_order: searchParams.sort_order || 'desc',
+      page: '1', // default reset to page 1 on filter change
+      limit: pagination.limit.toString(),
+      ...updates
+    };
+
+    Object.entries(current).forEach(([k, v]) => {
+      if (v !== '' && v !== null && v !== undefined && v !== '0' && v !== '99' && !(k.startsWith('min_') && v === '15') && !(k.startsWith('max_') && v === '50')) {
+        // Exception: keep ratings and age ranges if customized
+        if (['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k) && v === searchParams[k]) {
+          params.set(k, v);
+        } else if (!['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k)) {
+          params.set(k, v);
+        }
+      }
+      // Make sure we explicitly keep customized inputs
+      if (['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k) && (v !== '0' || k.startsWith('min_') === false) && (v !== '99' || k.startsWith('max_') === false)) {
+        params.set(k, v);
+      }
+    });
+
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSort = (field: string) => {
+    const currentSort = searchParams.sort_by || 'overall';
+    const currentOrder = searchParams.sort_order || 'desc';
+    
+    let newOrder = 'desc';
+    if (currentSort === field && currentOrder === 'desc') {
+      newOrder = 'asc';
+    }
+    applyFilters({ sort_by: field, sort_order: newOrder, page: '1' });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    applyFilters({ page: newPage.toString() });
+  };
+
+  const clearFilters = () => {
+    setSearchVal('');
+    setPositionVal('');
+    setClubVal('');
+    setLeagueVal('');
+    setNationalityVal('');
+    setMinOvr('0');
+    setMaxOvr('99');
+    setMinPot('0');
+    setMaxPot('99');
+    setMinAgeVal('15');
+    setMaxAgeVal('50');
+    setMinPace('0');
+    setMaxPace('99');
+    setMinShooting('0');
+    setMaxShooting('99');
+    setMinPassing('0');
+    setMaxPassing('99');
+    setMinDribbling('0');
+    setMaxDribbling('99');
+    setMinDefending('0');
+    setMaxDefending('99');
+    setMinPhysic('0');
+    setMaxPhysic('99');
+    router.push(pathname);
+  };
+
+  return (
+    <>
+      {/* Sidebar Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsSidebarOpen(false)} />
+      )}
+      
+      {/* Sidebar Filters */}
+      <aside className={`sidebar-filter ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-title">
+          <span>Search Filters</span>
+          <button 
+            className="sidebar-toggle-btn"
+            style={{ display: 'none' }} /* only shown on mobile */
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Text Search */}
+        <div className="filter-group">
+          <label className="filter-label">Player Name</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              className="filter-input"
+              placeholder="e.g. Messi, Mbappe..."
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyFilters({ search: searchVal })}
+            />
+            <Search 
+              size={16} 
+              style={{ position: 'absolute', right: '12px', top: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}
+              onClick={() => applyFilters({ search: searchVal })}
+            />
+          </div>
+        </div>
+
+        {/* Position */}
+        <div className="filter-group">
+          <label className="filter-label">Position</label>
+          <select
+            className="filter-input"
+            value={positionVal}
+            onChange={(e) => {
+              setPositionVal(e.target.value);
+              applyFilters({ position: e.target.value });
+            }}
+          >
+            <option value="">All Positions</option>
+            <optgroup label="General">
+              <option value="FWD">FWD (Forwards)</option>
+              <option value="MID">MID (Midfielders)</option>
+              <option value="DEF">DEF (Defenders)</option>
+              <option value="GK">GK (Goalkeepers)</option>
+            </optgroup>
+            <optgroup label="Specific">
+              <option value="ST">ST (Striker)</option>
+              <option value="CF">CF (Center Forward)</option>
+              <option value="LW">LW (Left Wing)</option>
+              <option value="RW">RW (Right Wing)</option>
+              <option value="CAM">CAM (Attacking Mid)</option>
+              <option value="CM">CM (Central Mid)</option>
+              <option value="CDM">CDM (Defensive Mid)</option>
+              <option value="LM">LM (Left Mid)</option>
+              <option value="RM">RM (Right Mid)</option>
+              <option value="CB">CB (Center Back)</option>
+              <option value="LB">LB (Left Back)</option>
+              <option value="RB">RB (Right Back)</option>
+              <option value="LWB">LWB (Left Wing Back)</option>
+              <option value="RWB">RWB (Right Wing Back)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        {/* Overall Rating Range */}
+        <div className="filter-group">
+          <label className="filter-label">Overall ({minOvr} - {maxOvr})</label>
+          <div className="filter-row">
+            <div className="range-container">
+              <input
+                type="range"
+                min="40"
+                max="99"
+                value={minOvr}
+                onChange={(e) => setMinOvr(e.target.value)}
+                onMouseUp={() => applyFilters({ min_overall: minOvr })}
+                onTouchEnd={() => applyFilters({ min_overall: minOvr })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Min: 40</span><span>{minOvr}</span></div>
+            </div>
+            <div className="range-container">
+              <input
+                type="range"
+                min="40"
+                max="99"
+                value={maxOvr}
+                onChange={(e) => setMaxOvr(e.target.value)}
+                onMouseUp={() => applyFilters({ max_overall: maxOvr })}
+                onTouchEnd={() => applyFilters({ max_overall: maxOvr })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Max: 99</span><span>{maxOvr}</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Potential Range */}
+        <div className="filter-group">
+          <label className="filter-label">Potential ({minPot} - {maxPot})</label>
+          <div className="filter-row">
+            <div className="range-container">
+              <input
+                type="range"
+                min="40"
+                max="99"
+                value={minPot}
+                onChange={(e) => setMinPot(e.target.value)}
+                onMouseUp={() => applyFilters({ min_potential: minPot })}
+                onTouchEnd={() => applyFilters({ min_potential: minPot })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Min: 40</span><span>{minPot}</span></div>
+            </div>
+            <div className="range-container">
+              <input
+                type="range"
+                min="40"
+                max="99"
+                value={maxPot}
+                onChange={(e) => setMaxPot(e.target.value)}
+                onMouseUp={() => applyFilters({ max_potential: maxPot })}
+                onTouchEnd={() => applyFilters({ max_potential: maxPot })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Max: 99</span><span>{maxPot}</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Age Range */}
+        <div className="filter-group">
+          <label className="filter-label">Age ({minAgeVal} - {maxAgeVal})</label>
+          <div className="filter-row">
+            <div className="range-container">
+              <input
+                type="range"
+                min="15"
+                max="45"
+                value={minAgeVal}
+                onChange={(e) => setMinAgeVal(e.target.value)}
+                onMouseUp={() => applyFilters({ min_age: minAgeVal })}
+                onTouchEnd={() => applyFilters({ min_age: minAgeVal })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Min: 15</span><span>{minAgeVal}</span></div>
+            </div>
+            <div className="range-container">
+              <input
+                type="range"
+                min="15"
+                max="45"
+                value={maxAgeVal}
+                onChange={(e) => setMaxAgeVal(e.target.value)}
+                onMouseUp={() => applyFilters({ max_age: maxAgeVal })}
+                onTouchEnd={() => applyFilters({ max_age: maxAgeVal })}
+                style={{ width: '100%' }}
+              />
+              <div className="range-labels"><span>Max: 45</span><span>{maxAgeVal}</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* League */}
+        <div className="filter-group">
+          <label className="filter-label">League</label>
+          <select
+            className="filter-input"
+            value={leagueVal}
+            onChange={(e) => {
+              setLeagueVal(e.target.value);
+              applyFilters({ league: e.target.value, club: '' }); // reset club if league changes
+            }}
+          >
+            <option value="">All Leagues</option>
+            {metadata.leagues.map(l => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Club */}
+        <div className="filter-group">
+          <label className="filter-label">Club</label>
+          <select
+            className="filter-input"
+            value={clubVal}
+            onChange={(e) => {
+              setClubVal(e.target.value);
+              applyFilters({ club: e.target.value });
+            }}
+          >
+            <option value="">All Clubs</option>
+            {metadata.clubs.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Nationality */}
+        <div className="filter-group">
+          <label className="filter-label">Nationality</label>
+          <select
+            className="filter-input"
+            value={nationalityVal}
+            onChange={(e) => {
+              setNationalityVal(e.target.value);
+              applyFilters({ nationality: e.target.value });
+            }}
+          >
+            <option value="">All Nationalities</option>
+            {metadata.nationalities.map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Accordion: Skill Attributes */}
+        <div className="filter-accordion">
+          <div 
+            className="filter-accordion-header"
+            onClick={() => setIsSkillsOpen(!isSkillsOpen)}
+          >
+            <span>Skill Attributes</span>
+            <SlidersHorizontal size={14} />
+          </div>
+          {isSkillsOpen && (
+            <div className="filter-accordion-content">
+              {/* Pace */}
+              <div className="filter-group">
+                <label className="filter-label">Pace ({minPace}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minPace}
+                  onChange={(e) => setMinPace(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_pace: minPace })}
+                  onTouchEnd={() => applyFilters({ min_pace: minPace })}
+                />
+              </div>
+              {/* Shooting */}
+              <div className="filter-group">
+                <label className="filter-label">Shooting ({minShooting}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minShooting}
+                  onChange={(e) => setMinShooting(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_shooting: minShooting })}
+                  onTouchEnd={() => applyFilters({ min_shooting: minShooting })}
+                />
+              </div>
+              {/* Passing */}
+              <div className="filter-group">
+                <label className="filter-label">Passing ({minPassing}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minPassing}
+                  onChange={(e) => setMinPassing(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_passing: minPassing })}
+                  onTouchEnd={() => applyFilters({ min_passing: minPassing })}
+                />
+              </div>
+              {/* Dribbling */}
+              <div className="filter-group">
+                <label className="filter-label">Dribbling ({minDribbling}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minDribbling}
+                  onChange={(e) => setMinDribbling(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_dribbling: minDribbling })}
+                  onTouchEnd={() => applyFilters({ min_dribbling: minDribbling })}
+                />
+              </div>
+              {/* Defending */}
+              <div className="filter-group">
+                <label className="filter-label">Defending ({minDefending}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minDefending}
+                  onChange={(e) => setMinDefending(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_defending: minDefending })}
+                  onTouchEnd={() => applyFilters({ min_defending: minDefending })}
+                />
+              </div>
+              {/* Physic */}
+              <div className="filter-group">
+                <label className="filter-label">Physicality ({minPhysic}+)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="99"
+                  value={minPhysic}
+                  onChange={(e) => setMinPhysic(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_physic: minPhysic })}
+                  onTouchEnd={() => applyFilters({ min_physic: minPhysic })}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Clear Filters Button */}
+        <button 
+          className="btn btn-secondary w-full"
+          onClick={clearFilters}
+          style={{ marginTop: 'auto' }}
+        >
+          <FilterX size={16} />
+          <span>Clear Filters</span>
+        </button>
+      </aside>
+
+      {/* Main Content Area */}
+      <section className="content-area">
+        <div className="page-header">
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button 
+              className="sidebar-toggle-btn"
+              style={{ display: 'inline-flex' }} /* dynamically handled in media queries */
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <Menu size={18} />
+            </button>
+            <h1 className="page-title">Player Scouting</h1>
+          </div>
+          
+          <div className="scouting-results-header">
+            <span>Total Players: <strong>{pagination.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong></span>
+          </div>
+        </div>
+
+        {/* Players Table (Desktop Only) */}
+        <div className="desktop-only-table">
+          <div className="table-wrapper">
+          <table className="scouting-table">
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }} className="text-center">Fav</th>
+                <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('overall')}>
+                  OVR <ArrowUpDown size={12} />
+                </th>
+                <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('potential')}>
+                  POT <ArrowUpDown size={12} />
+                </th>
+                <th className="sortable" onClick={() => handleSort('short_name')}>
+                  Name <ArrowUpDown size={12} />
+                </th>
+                <th style={{ width: '100px' }} className="text-center">Pos</th>
+                <th className="sortable text-center" onClick={() => handleSort('age')} style={{ width: '60px' }}>
+                  Age <ArrowUpDown size={12} />
+                </th>
+                <th>Club</th>
+                <th>Nationality</th>
+                <th className="sortable" onClick={() => handleSort('value_eur')} style={{ width: '100px' }}>
+                  Value <ArrowUpDown size={12} />
+                </th>
+                <th className="sortable" onClick={() => handleSort('wage_eur')} style={{ width: '100px' }}>
+                  Wage <ArrowUpDown size={12} />
+                </th>
+                <th style={{ width: '60px' }} className="text-center">View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {initialPlayers.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="text-center" style={{ padding: '3rem', color: 'var(--text-muted)' }}>
+                    No players found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                initialPlayers.map((player) => {
+                  const isStarred = shortlist.includes(player.player_id);
+                  return (
+                    <tr key={player.player_id}>
+                      <td className="text-center">
+                        <button 
+                          onClick={(e) => toggleShortlist(player.player_id, e)}
+                          style={{ background: 'none', border: 'none', color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                          {isStarred ? <Star size={16} fill="var(--accent-gold)" /> : <Star size={16} />}
+                        </button>
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
+                          {player.overall}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <span className={`badge-rating ${getRatingBadgeClass(player.potential)}`} style={{ opacity: 0.85 }}>
+                          {player.potential}
+                        </span>
+                      </td>
+                      <td>
+                        <Link href={`/players/${player.player_id}`} style={{ fontWeight: '700' }}>
+                          {player.short_name}
+                        </Link>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.long_name}</div>
+                      </td>
+                      <td className="text-center">
+                        <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
+                          {player.player_positions.split(',').map(pos => (
+                            <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`}>
+                              {pos.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="text-center">{player.age}</td>
+                      <td>
+                        <div style={{ fontWeight: '500' }}>{player.club_name || 'Free Agent'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.league_name || 'No League'}</div>
+                      </td>
+                      <td>{player.nationality_name}</td>
+                      <td style={{ fontWeight: '700' }} className="text-green">
+                        {formatCurrency(player.value_eur)}
+                      </td>
+                      <td style={{ fontWeight: '700' }} className="text-gold">
+                        {formatCurrency(player.wage_eur)}
+                      </td>
+                      <td className="text-center">
+                        <Link href={`/players/${player.player_id}`} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '4px' }}>
+                          <Eye size={14} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Mobile View Player Cards (Mobile Only) */}
+      <div className="mobile-only-cards">
+        {initialPlayers.length === 0 ? (
+          <div className="stats-card text-center" style={{ padding: '2rem', color: 'var(--text-muted)' }}>
+            No players found matching your criteria.
+          </div>
+        ) : (
+          initialPlayers.map((player) => {
+            const isStarred = shortlist.includes(player.player_id);
+            return (
+              <div key={player.player_id} className="mobile-player-card" onClick={() => router.push(`/players/${player.player_id}`)}>
+                {/* Left OVR/POT Badges */}
+                <div className="mobile-card-left">
+                  <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
+                    {player.overall}
+                  </span>
+                  <span className="badge-pos" style={{ fontSize: '0.7rem', padding: '1px 4px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
+                    {player.player_positions.split(',')[0]}
+                  </span>
+                </div>
+                
+                {/* Center Name/Club */}
+                <div className="mobile-card-center">
+                  <div className="mobile-card-name">{player.short_name}</div>
+                  <div className="mobile-card-club">
+                    {player.club_name || 'Free Agent'} • {player.age} yrs
+                  </div>
+                </div>
+                
+                {/* Right Value/Wage & Star */}
+                <div className="mobile-card-right">
+                  <div className="mobile-card-val text-green">{formatCurrency(player.value_eur)}</div>
+                  <div className="mobile-card-wage text-gold">{formatCurrency(player.wage_eur)} / wk</div>
+                  <button 
+                    onClick={(e) => toggleShortlist(player.player_id, e)}
+                    style={{ background: 'none', border: 'none', color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)', cursor: 'pointer', marginTop: '0.2rem' }}
+                  >
+                    {isStarred ? <Star size={16} fill="var(--accent-gold)" /> : <Star size={16} />}
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="pagination-container">
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Showing Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong>
+            </span>
+            <div className="pagination-buttons">
+              <button 
+                className="pagination-btn"
+                disabled={pagination.page <= 1}
+                onClick={() => handlePageChange(pagination.page - 1)}
+              >
+                <ChevronLeft size={14} /> Prev
+              </button>
+              
+              {/* Simple page numbers strategy */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                // Centering current page
+                let pageNum = pagination.page - 2 + i;
+                if (pagination.page <= 2) pageNum = i + 1;
+                if (pagination.page >= pagination.totalPages - 1) pageNum = pagination.totalPages - 4 + i;
+                if (pageNum < 1) pageNum = 1;
+                if (pageNum > pagination.totalPages) return null;
+                
+                return (
+                  <button
+                    key={pageNum}
+                    className={`pagination-btn ${pagination.page === pageNum ? 'active' : ''}`}
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button 
+                className="pagination-btn"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => handlePageChange(pagination.page + 1)}
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+      
+      {/* Responsive toggle custom CSS overlay */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          .sidebar-toggle-btn {
+            display: inline-flex !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+}
