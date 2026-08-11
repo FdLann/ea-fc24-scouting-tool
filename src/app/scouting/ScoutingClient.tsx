@@ -830,25 +830,32 @@ export default function ScoutingClient({
                 <ChevronLeft size={14} /> Prev
               </button>
               
-              {/* Simple page numbers strategy */}
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                // Centering current page
-                let pageNum = pagination.page - 2 + i;
-                if (pagination.page <= 2) pageNum = i + 1;
-                if (pagination.page >= pagination.totalPages - 1) pageNum = pagination.totalPages - 4 + i;
-                if (pageNum < 1) pageNum = 1;
-                if (pageNum > pagination.totalPages) return null;
-                
-                return (
+              {/* Page numbers with unique keys */}
+              {(() => {
+                const total = pagination.totalPages;
+                const current = pagination.page;
+                let pages: number[] = [];
+
+                if (total <= 5) {
+                  pages = Array.from({ length: total }, (_, i) => i + 1);
+                } else if (current <= 3) {
+                  pages = [1, 2, 3, 4, 5];
+                } else if (current >= total - 2) {
+                  pages = [total - 4, total - 3, total - 2, total - 1, total];
+                } else {
+                  pages = [current - 2, current - 1, current, current + 1, current + 2];
+                }
+
+                return pages.map((pageNum) => (
                   <button
                     key={pageNum}
-                    className={`pagination-btn ${pagination.page === pageNum ? 'active' : ''}`}
+                    className={`pagination-btn ${current === pageNum ? 'active' : ''}`}
                     onClick={() => handlePageChange(pageNum)}
                   >
                     {pageNum}
                   </button>
-                );
-              })}
+                ));
+              })()}
 
               <button 
                 className="pagination-btn"
