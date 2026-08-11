@@ -609,8 +609,43 @@ export default function ScoutingClient({
             <h1 className="page-title">Scouting</h1>
           </div>
           
-          <div className="scouting-results-header">
-            <span><strong>{pagination.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong> players found</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {/* Quick Sort Bar for Mobile & Desktop */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ArrowUpDown size={14} style={{ color: 'var(--accent-blue)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Sort:</span>
+              <select
+                className="filter-input"
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto', background: 'var(--bg-sidebar)' }}
+                value={searchParams.sort_by || 'overall'}
+                onChange={(e) => applyFilters({ sort_by: e.target.value, page: '1' })}
+              >
+                <option value="overall">Overall (OVR)</option>
+                <option value="potential">Potential (POT)</option>
+                <option value="short_name">Player Name</option>
+                <option value="age">Age</option>
+                <option value="value_eur">Market Value</option>
+                <option value="wage_eur">Weekly Wage</option>
+              </select>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', gap: '0.2rem' }}
+                onClick={() => {
+                  const currentOrder = searchParams.sort_order || 'desc';
+                  const newOrder = currentOrder === 'desc' ? 'asc' : 'desc';
+                  applyFilters({ sort_order: newOrder, page: '1' });
+                }}
+              >
+                <span>{(searchParams.sort_order || 'desc').toUpperCase()}</span>
+                <span style={{ fontSize: '0.85rem' }}>{searchParams.sort_order === 'asc' ? '↑' : '↓'}</span>
+              </button>
+            </div>
+
+            <div className="scouting-results-header">
+              <span><strong>{pagination.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong> players</span>
+            </div>
           </div>
         </div>
 

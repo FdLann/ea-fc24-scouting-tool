@@ -185,8 +185,38 @@ export default function ShortlistPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          <div className="scouting-results-header">
-            <span>Starred Targets: <strong>{sortedPlayers.length}</strong> players</span>
+          <div className="scouting-toolbar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <ArrowUpDown size={14} style={{ color: 'var(--accent-blue)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Sort:</span>
+              <select
+                className="filter-input"
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto', background: 'var(--bg-sidebar)' }}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="overall">Overall (OVR)</option>
+                <option value="potential">Potential (POT)</option>
+                <option value="short_name">Player Name</option>
+                <option value="age">Age</option>
+                <option value="value_eur">Market Value</option>
+                <option value="wage_eur">Weekly Wage</option>
+              </select>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', gap: '0.2rem' }}
+                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+              >
+                <span>{sortOrder.toUpperCase()}</span>
+                <span style={{ fontSize: '0.85rem' }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+              </button>
+            </div>
+
+            <div className="scouting-results-header">
+              <span>Starred Targets: <strong>{sortedPlayers.length}</strong> players</span>
+            </div>
           </div>
 
           {/* Desktop Only View */}
