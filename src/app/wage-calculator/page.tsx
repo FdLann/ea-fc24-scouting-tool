@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Calculator, DollarSign, Info, Sliders, RefreshCw, 
-  TrendingUp, Award, Shield, User, Globe
+  SlidersHorizontal, Wallet, Info, RotateCcw
 } from 'lucide-react';
 import { calculateEstimatedWage } from '@/lib/wageCalculator';
 
@@ -38,11 +37,12 @@ export default function WageCalculatorPage() {
     setPosition('CM');
   };
 
-  // Conversions for typical currencies
+  // Conversions for typical currencies with realistic rounding
   const formatCurrency = (val: number, symbol: string, factor: number) => {
     const converted = val * factor;
     if (converted >= 1000) {
-      return `${symbol}${Math.round(converted / 250) * 250}`; // round to nearest 250 for realistic feel
+      const rounded = Math.round(converted / 250) * 250;
+      return `${symbol}${rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
     }
     return `${symbol}${Math.round(converted)}`;
   };
@@ -75,227 +75,218 @@ export default function WageCalculatorPage() {
 
   return (
     <div className="content-area">
-      <div className="page-header">
-        <h1 className="page-title">Career Mode Wage Calculator</h1>
-        <button className="btn btn-secondary" onClick={handleReset}>
-          <RefreshCw size={16} />
-          <span>Reset</span>
+      
+      {/* Title & Reset Button Bar */}
+      <div className="calc-header-bar">
+        <h1 className="page-title" style={{ margin: 0 }}>
+          CAREER MODE WAGE CALCULATOR
+        </h1>
+        <button 
+          className="btn btn-secondary btn-sm" 
+          onClick={handleReset}
+          style={{ gap: '0.4rem', padding: '0.45rem 0.85rem' }}
+        >
+          <RotateCcw size={14} />
+          <span>RESET</span>
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
-        {/* Responsive Grid layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr' }} className="player-detail-container">
-          
-          {/* Inputs Panel */}
-          <div className="stats-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h3 className="stats-card-title">
-              <Sliders size={18} />
-              Calculator Parameters
-            </h3>
-
-            {/* Overall Rating Slider */}
-            <div className="filter-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label className="filter-label">Overall Rating (OVR)</label>
-                <strong>{overall}</strong>
-              </div>
-              <input
-                type="range"
-                min="40"
-                max="99"
-                value={overall}
-                onChange={(e) => {
-                  const ovr = parseInt(e.target.value, 10);
-                  setOverall(ovr);
-                  // Ensure potential is at least equal to overall
-                  if (potential < ovr) {
-                    setPotential(ovr);
-                  }
-                }}
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* Potential Rating Slider */}
-            <div className="filter-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label className="filter-label">Potential Rating (POT)</label>
-                <strong>{potential}</strong>
-              </div>
-              <input
-                type="range"
-                min={overall}
-                max="99"
-                value={potential}
-                onChange={(e) => setPotential(parseInt(e.target.value, 10))}
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* Age Slider */}
-            <div className="filter-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label className="filter-label">Player Age</label>
-                <strong>{age} years old</strong>
-              </div>
-              <input
-                type="range"
-                min="15"
-                max="45"
-                value={age}
-                onChange={(e) => setAge(parseInt(e.target.value, 10))}
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* International Reputation */}
-            <div className="filter-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label className="filter-label">International Reputation</label>
-                <strong>{rep} Star{rep > 1 ? 's' : ''}</strong>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={rep}
-                onChange={(e) => setRep(parseInt(e.target.value, 10))}
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* League Select */}
-            <div className="filter-group">
-              <label className="filter-label">League Prestige</label>
-              <select
-                className="filter-input"
-                value={league}
-                onChange={(e) => setLeague(e.target.value)}
-              >
-                <option value="Premier League">Premier League (England - Tier 1)</option>
-                <option value="La Liga">La Liga (Spain - Tier 2)</option>
-                <option value="Serie A">Serie A (Italy - Tier 2)</option>
-                <option value="Ligue 1">Ligue 1 (France - Tier 2)</option>
-                <option value="Bundesliga">Bundesliga (Germany - Tier 2)</option>
-                <option value="Championship">EFL Championship (England - Tier 3)</option>
-                <option value="Eredivisie">Eredivisie (Netherlands - Tier 3)</option>
-                <option value="Liga Portugal">Liga Portugal (Portugal - Tier 3)</option>
-                <option value="Super Lig">Süper Lig (Turkey - Tier 3)</option>
-                <option value="Liga Profesional">Liga Profesional (Argentina - Tier 3)</option>
-                <option value="Other">Other Leagues / Rest of World (Tier 4)</option>
-              </select>
-            </div>
-
-            {/* Position Select */}
-            <div className="filter-group">
-              <label className="filter-label">Player Position</label>
-              <select
-                className="filter-input"
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-              >
-                <option value="ST">ST / CF / wingers (Forward - Base)</option>
-                <option value="CM">CM / CDM / CAM / RM / LM (Midfielder)</option>
-                <option value="CB">CB / LB / RB / LWB / RWB (Defender)</option>
-                <option value="GK">GK (Goalkeeper)</option>
-              </select>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        
+        {/* PARAMETERS CARD */}
+        <div className="stats-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+            <SlidersHorizontal size={16} style={{ color: 'var(--accent-blue)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent-blue)' }}>
+              CALCULATOR PARAMETERS
+            </span>
           </div>
 
-          {/* Outputs Panel */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
-            {/* Currency outputs box */}
-            <div className="calculator-box">
-              <h3 className="stats-card-title">
-                <DollarSign size={18} />
-                Estimated Weekly Wage
-              </h3>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-                
-                {/* EUR */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-sidebar)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Euros (EUR)</span>
-                    <h2 style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
-                      {formatCurrency(wage, '€', 1.0)}
-                    </h2>
-                  </div>
-                  <Globe size={24} style={{ color: 'var(--text-muted)' }} />
-                </div>
-
-                {/* GBP */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-sidebar)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', opacity: 0.9 }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Pounds Sterling (GBP)</span>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: 'white' }}>
-                      {formatCurrency(wage, '£', 0.85)}
-                    </h2>
-                  </div>
-                  <Globe size={24} style={{ color: 'var(--text-muted)' }} />
-                </div>
-
-                {/* USD */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-sidebar)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', opacity: 0.9 }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>US Dollars (USD)</span>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: 'white' }}>
-                      {formatCurrency(wage, '$', 1.10)}
-                    </h2>
-                  </div>
-                  <Globe size={24} style={{ color: 'var(--text-muted)' }} />
-                </div>
-
-              </div>
-            </div>
-
-            {/* Calculations Panel */}
-            <div className="stats-card">
-              <h3 className="stats-card-title">
-                <Info size={16} />
-                Calculated Coefficients Breakdown
-              </h3>
-              <div className="calc-breakdown" style={{ marginTop: '0', paddingTop: '0', borderTop: 'none' }}>
-                <div className="calc-breakdown-row">
-                  <span>Base Intercept:</span>
-                  <span className="calc-breakdown-val">1.821668</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>OVR Multiplier (0.139067 x {overall}):</span>
-                  <span className="calc-breakdown-val">+{(0.139067 * overall).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>POT Multiplier (-0.041871 x {potential}):</span>
-                  <span className="calc-breakdown-val" style={{ color: 'var(--accent-red)' }}>-{(0.041871 * potential).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>AGE Multiplier (-0.025183 x {age}):</span>
-                  <span className="calc-breakdown-val" style={{ color: 'var(--accent-red)' }}>-{(0.025183 * age).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Reputation (0.302240 x {rep}):</span>
-                  <span className="calc-breakdown-val">+{(0.302240 * rep).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>League modifier ({league}):</span>
-                  <span className="calc-breakdown-val">+{getLeagueMod(league).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Position modifier ({getPositionLabel(position)}):</span>
-                  <span className="calc-breakdown-val">{getPositionMod(position).toFixed(4)}</span>
-                </div>
-              </div>
+          <div className="calc-params-grid">
+            {/* Left Column: Sliders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               
-              <div className="calc-disclaimer" style={{ marginTop: '1.5rem' }}>
-                Disclaimer: The weekly wages calculated represent estimated demands. Career Mode wages have randomness based on current squad sizes, negotiation contract structures (such as sign-on bonuses), and seasonal team budgets.
+              {/* Overall */}
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="skill-slider-label">OVERALL RATING (OVR)</span>
+                  <span className="skill-slider-value">{overall}</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="99"
+                  value={overall}
+                  onChange={(e) => {
+                    const ovr = parseInt(e.target.value, 10);
+                    setOverall(ovr);
+                    if (potential < ovr) setPotential(ovr);
+                  }}
+                />
               </div>
+
+              {/* Potential */}
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="skill-slider-label">POTENTIAL RATING (POT)</span>
+                  <span className="skill-slider-value">{potential}</span>
+                </div>
+                <input
+                  type="range"
+                  min={overall}
+                  max="99"
+                  value={potential}
+                  onChange={(e) => setPotential(parseInt(e.target.value, 10))}
+                />
+              </div>
+
+              {/* Age */}
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="skill-slider-label">PLAYER AGE</span>
+                  <span className="skill-slider-value">{age} years old</span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="45"
+                  value={age}
+                  onChange={(e) => setAge(parseInt(e.target.value, 10))}
+                />
+              </div>
+
+              {/* International Reputation */}
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="skill-slider-label">INTERNATIONAL REPUTATION</span>
+                  <span className="skill-slider-value">{rep} Star{rep > 1 ? 's' : ''}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={rep}
+                  onChange={(e) => setRep(parseInt(e.target.value, 10))}
+                />
+              </div>
+
             </div>
 
+            {/* Right Column: Dropdowns */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* League Select */}
+              <div className="filter-group">
+                <label className="filter-label">LEAGUE PRESTIGE</label>
+                <select
+                  className="filter-input"
+                  style={{ background: 'var(--bg-input)', padding: '0.7rem 0.85rem' }}
+                  value={league}
+                  onChange={(e) => setLeague(e.target.value)}
+                >
+                  <option value="Premier League">Premier League (England - Tier 1)</option>
+                  <option value="La Liga">La Liga (Spain - Tier 2)</option>
+                  <option value="Serie A">Serie A (Italy - Tier 2)</option>
+                  <option value="Ligue 1">Ligue 1 (France - Tier 2)</option>
+                  <option value="Bundesliga">Bundesliga (Germany - Tier 2)</option>
+                  <option value="Championship">EFL Championship (England - Tier 3)</option>
+                  <option value="Eredivisie">Eredivisie (Netherlands - Tier 3)</option>
+                  <option value="Liga Portugal">Liga Portugal (Portugal - Tier 3)</option>
+                  <option value="Super Lig">Süper Lig (Turkey - Tier 3)</option>
+                  <option value="Liga Profesional">Liga Profesional (Argentina - Tier 3)</option>
+                  <option value="Other">Other Leagues / Rest of World (Tier 4)</option>
+                </select>
+              </div>
+
+              {/* Position Select */}
+              <div className="filter-group">
+                <label className="filter-label">PLAYER POSITION</label>
+                <select
+                  className="filter-input"
+                  style={{ background: 'var(--bg-input)', padding: '0.7rem 0.85rem' }}
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                >
+                  <option value="ST">ST / CF / LW / RW (Forward - Base)</option>
+                  <option value="CM">CM / CDM / CAM / RM / LM (Midfielder)</option>
+                  <option value="CB">CB / LB / RB / LWB / RWB (Defender)</option>
+                  <option value="GK">GK (Goalkeeper)</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ESTIMATED WEEKLY WAGE SECTION */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Wallet size={18} style={{ color: 'var(--text-secondary)' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: '800', letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              ESTIMATED WEEKLY WAGE
+            </span>
           </div>
 
+          <div className="currency-cards-grid">
+            {/* EUR */}
+            <div className="currency-card">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <span className="wage-metric-label">EUROS (EUR)</span>
+                <span className="wage-metric-val text-gold">
+                  {formatCurrency(wage, '€', 1.0)}
+                </span>
+              </div>
+              <span className="currency-symbol-watermark">€</span>
+            </div>
+
+            {/* GBP */}
+            <div className="currency-card">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <span className="wage-metric-label">POUNDS STERLING (GBP)</span>
+                <span className="wage-metric-val" style={{ color: '#FFFFFF' }}>
+                  {formatCurrency(wage, '£', 0.85)}
+                </span>
+              </div>
+              <span className="currency-symbol-watermark">£</span>
+            </div>
+
+            {/* USD */}
+            <div className="currency-card">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <span className="wage-metric-label">US DOLLARS (USD)</span>
+                <span className="wage-metric-val" style={{ color: '#FFFFFF' }}>
+                  {formatCurrency(wage, '$', 1.10)}
+                </span>
+              </div>
+              <span className="currency-symbol-watermark">$</span>
+            </div>
+          </div>
         </div>
+
+        {/* CALCULATED COEFFICIENTS BREAKDOWN */}
+        <div className="stats-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <Info size={16} style={{ color: 'var(--text-secondary)' }} />
+            <span style={{ fontSize: '0.85rem', fontWeight: '800', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+              CALCULATED COEFFICIENTS BREAKDOWN
+            </span>
+          </div>
+
+          <div className="math-breakdown-code" style={{ marginTop: 0 }}>
+            <div>Base Intercept: 1.821668</div>
+            <div>OVR Multiplier (0.139067 x {overall}): <span style={{ color: 'var(--accent-blue)' }}>+{(0.139067 * overall).toFixed(4)}</span></div>
+            <div>POT Multiplier (-0.041871 x {potential}): <span style={{ color: 'var(--accent-red)' }}>-{(0.041871 * potential).toFixed(4)}</span></div>
+            <div>AGE Multiplier (-0.025183 x {age}): <span style={{ color: 'var(--accent-red)' }}>-{(0.025183 * age).toFixed(4)}</span></div>
+            <div>Reputation (0.302240 x {rep}): <span style={{ color: 'var(--accent-blue)' }}>+{(0.302240 * rep).toFixed(4)}</span></div>
+            <div>League modifier ({league}): <span style={{ color: 'var(--accent-blue)' }}>+{getLeagueMod(league).toFixed(4)}</span></div>
+            <div>Position modifier ({getPositionLabel(position)}): <span style={{ color: getPositionMod(position) < 0 ? 'var(--accent-red)' : 'var(--text-secondary)' }}>{getPositionMod(position).toFixed(4)}</span></div>
+          </div>
+
+          <p className="calc-disclaimer-text">
+            Disclaimer: The weekly wages calculated represent estimated demands. Career Mode wages have randomness based on current squad sizes, negotiation contract structures (such as sign-on bonuses), and seasonal team budgets.
+          </p>
+        </div>
+
       </div>
     </div>
   );
