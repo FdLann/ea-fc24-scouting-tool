@@ -820,12 +820,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
 
 .wage-metrics-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
   margin-bottom: 1.25rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 850px) {
   .wage-metrics-grid {
     grid-template-columns: 1fr;
     gap: 1rem;

@@ -326,6 +326,26 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
               ))}
             </div>
 
+            {/* Market Value Highlight Banner */}
+            <div style={{ 
+              width: '100%', 
+              background: 'rgba(0, 230, 118, 0.08)', 
+              border: '1px solid rgba(0, 230, 118, 0.25)', 
+              borderRadius: '8px', 
+              padding: '0.65rem 0.9rem', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '1rem' 
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Market Value
+              </span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: '900', color: 'var(--accent-green)' }}>
+                {formatCurrency(player.value_eur)}
+              </span>
+            </div>
+
             {/* Profile Meta Info */}
             <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -365,6 +385,14 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
             {/* Wage Metrics Comparison Grid */}
             <div className="wage-metrics-grid">
               <div className="wage-metric-card">
+                <span className="wage-metric-label">MARKET VALUE</span>
+                <div className="wage-metric-val text-green">
+                  {formatCurrency(player.value_eur)}
+                </div>
+                <span className="wage-metric-sub">Transfer market valuation</span>
+              </div>
+
+              <div className="wage-metric-card">
                 <span className="wage-metric-label">ACTUAL IN-GAME WAGE</span>
                 <div className="wage-metric-val text-blue">
                   {formatCurrency(player.wage_eur)}
@@ -377,7 +405,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
                 <div className="wage-metric-val text-gold">
                   {formatCurrency(estimatedWage)}
                 </div>
-                <span className="wage-metric-sub">Calculated using reverse-engineered coefficients</span>
+                <span className="wage-metric-sub">Calculated coefficients</span>
               </div>
             </div>
 
