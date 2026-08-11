@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Star, Heart, TrendingUp, DollarSign, Award, Shield, 
-  MapPin, HelpCircle, User, Info, Sliders, ChevronDown
+  ArrowLeft, Star, DollarSign, SlidersHorizontal, Shield, Wallet
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -119,7 +118,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
           player.defending || 0,
           player.physic || 0
         ],
-        backgroundColor: 'rgba(0, 229, 255, 0.2)',
+        backgroundColor: 'rgba(0, 229, 255, 0.25)',
         borderColor: '#00E5FF',
         borderWidth: 2,
         pointBackgroundColor: '#00E5FF',
@@ -133,11 +132,11 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
   const radarOptions = {
     scales: {
       r: {
-        angleLines: { color: 'rgba(36, 47, 61, 0.5)' },
-        grid: { color: 'rgba(36, 47, 61, 0.5)' },
+        angleLines: { color: 'rgba(30, 45, 66, 0.6)' },
+        grid: { color: 'rgba(30, 45, 66, 0.6)' },
         pointLabels: {
-          color: '#90A4AE',
-          font: { family: 'var(--font-sans)', weight: 'bold', size: 12 }
+          color: '#8BA3BC',
+          font: { family: 'var(--font-sans)', weight: '600', size: 11 }
         },
         ticks: { display: false },
         suggestedMin: 30,
@@ -149,11 +148,12 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
     }
   };
 
-  // Helper for progress bar color
-  const getProgressColor = (val: number) => {
-    if (val >= 80) return 'var(--accent-green)';
-    if (val >= 70) return 'var(--accent-gold)';
-    if (val >= 50) return '#FF9100'; // Orange
+  // Stat color code helper
+  const getStatColor = (val: number | null) => {
+    if (!val) return 'var(--text-muted)';
+    if (val >= 80) return '#00E676'; // Bright green
+    if (val >= 70) return '#00E5FF'; // Cyan
+    if (val >= 50) return '#FFFFFF'; // White
     return 'var(--accent-red)';
   };
 
@@ -172,13 +172,12 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
     return 'pos-fwd';
   };
 
-  // League modifiers text helper
   const leagueTier = getLeagueTier(player.league_name || 'Other');
   const positionCat = getGeneralPosition(player.player_positions || 'CM');
 
   const statsGroups = {
     attacking: {
-      title: 'Attacking',
+      title: 'ATTACKING',
       stats: [
         { label: 'Crossing', val: player.attacking_crossing },
         { label: 'Finishing', val: player.attacking_finishing },
@@ -188,7 +187,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
       ]
     },
     skill: {
-      title: 'Skill',
+      title: 'SKILL',
       stats: [
         { label: 'Dribbling', val: player.skill_dribbling },
         { label: 'Curve', val: player.skill_curve },
@@ -198,7 +197,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
       ]
     },
     movement: {
-      title: 'Movement',
+      title: 'MOVEMENT',
       stats: [
         { label: 'Acceleration', val: player.movement_acceleration },
         { label: 'Sprint Speed', val: player.movement_sprint_speed },
@@ -208,7 +207,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
       ]
     },
     power: {
-      title: 'Power',
+      title: 'POWER',
       stats: [
         { label: 'Shot Power', val: player.power_shot_power },
         { label: 'Jumping', val: player.power_jumping },
@@ -218,7 +217,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
       ]
     },
     mentality: {
-      title: 'Mentality',
+      title: 'MENTALITY',
       stats: [
         { label: 'Aggression', val: player.mentality_aggression },
         { label: 'Interceptions', val: player.mentality_interceptions },
@@ -229,7 +228,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
       ]
     },
     defending: {
-      title: 'Defending',
+      title: 'DEFENDING',
       stats: [
         { label: 'Defending Awareness', val: player.defending_marking_awareness },
         { label: 'Standing Tackle', val: player.defending_standing_tackle },
@@ -238,10 +237,9 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
     }
   };
 
-  // If GK, add Goalkeeping stats card
   const isGK = player.player_positions.split(',')[0].trim().toUpperCase() === 'GK';
   const gkGroup = {
-    title: 'Goalkeeping',
+    title: 'GOALKEEPING',
     stats: [
       { label: 'GK Diving', val: player.goalkeeping_diving },
       { label: 'GK Handling', val: player.goalkeeping_handling },
@@ -254,26 +252,31 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
   return (
     <div className="content-area">
       {/* Back button */}
-      <div>
-        <button className="btn btn-secondary" onClick={() => router.back()}>
-          <ArrowLeft size={16} />
-          <span>Back to Scouting</span>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <button 
+          className="btn btn-secondary" 
+          onClick={() => router.back()}
+          style={{ textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '1px' }}
+        >
+          <ArrowLeft size={14} />
+          <span>BACK TO SCOUTING</span>
         </button>
       </div>
 
       <div className="player-detail-container">
         
-        {/* Left Panel: Identity & Radar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        {/* Left Column: Identity & Radar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* FUT Identity Card */}
           <div className="player-card-fut">
+            {/* Star shortlist button */}
             <button 
               onClick={toggleShortlist}
               style={{
                 position: 'absolute',
-                top: '1.5rem',
-                right: '1.5rem',
+                top: '1.25rem',
+                right: '1.25rem',
                 background: 'none',
                 border: 'none',
                 color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)',
@@ -281,278 +284,210 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
                 zIndex: 10
               }}
             >
-              {isStarred ? <Star size={24} fill="var(--accent-gold)" /> : <Star size={24} />}
+              {isStarred ? <Star size={22} fill="var(--accent-gold)" /> : <Star size={22} />}
             </button>
 
+            {/* Badges OVR & POT */}
             <div className="fut-ovr-container">
               <div className="fut-ovr-item">
-                <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`} style={{ width: '56px', height: '56px', fontSize: '1.5rem' }}>
+                <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`} style={{ width: '52px', height: '52px', fontSize: '1.4rem' }}>
                   {player.overall}
                 </span>
                 <span className="fut-ovr-label">OVR</span>
               </div>
-              <div className="fut-ovr-item" style={{ opacity: 0.8 }}>
-                <span className={`badge-rating ${getRatingBadgeClass(player.potential)}`} style={{ width: '56px', height: '56px', fontSize: '1.5rem' }}>
+              <div className="fut-ovr-item">
+                <span className={`badge-rating ${getRatingBadgeClass(player.potential)}`} style={{ width: '52px', height: '52px', fontSize: '1.4rem' }}>
                   {player.potential}
                 </span>
                 <span className="fut-ovr-label">POT</span>
               </div>
             </div>
 
-            <h2 className="player-name-large">{player.short_name}</h2>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.25rem 0 1rem 0' }}>{player.long_name}</div>
+            <h2 className="player-name-display">{player.short_name}</h2>
+            <div className="player-full-name">{player.long_name}</div>
             
-            <div className="player-club-info">
-              <span style={{ fontWeight: '700', color: 'white' }}>{player.club_name || 'Free Agent'}</span>
-              <span style={{ fontSize: '0.85rem' }}>{player.league_name || 'No League'}</span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Nationality: {player.nationality_name}</span>
+            {/* Club Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '4px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <Shield size={18} style={{ color: 'var(--accent-blue)', margin: 'auto' }} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: '800', color: 'white', fontSize: '0.95rem' }}>{player.club_name || 'Free Agent'}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{player.league_name || 'No League'}</div>
+              </div>
             </div>
 
-            <div className="player-badges-horizontal">
+            {/* Position Badges */}
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginBottom: '1.25rem' }}>
               {player.player_positions.split(',').map((pos: string) => (
-                <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
+                <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}>
                   {pos.trim()}
                 </span>
               ))}
             </div>
 
-            {/* Profile Meta stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              <div>Age: <strong style={{ color: 'white' }}>{player.age}</strong></div>
-              <div>Foot: <strong style={{ color: 'white' }}>{player.preferred_foot}</strong></div>
-              <div>Height: <strong style={{ color: 'white' }}>{player.height_cm} cm</strong></div>
-              <div>Weight: <strong style={{ color: 'white' }}>{player.weight_kg} kg</strong></div>
-              <div>Skills: <strong style={{ color: 'white' }}>{player.skill_moves} ★</strong></div>
-              <div>Weak Foot: <strong style={{ color: 'white' }}>{player.weak_foot} ★</strong></div>
+            {/* Profile Meta Info */}
+            <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Age: <strong style={{ color: 'white' }}>{player.age}</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>Foot: <strong style={{ color: 'white' }}>{player.preferred_foot}</strong></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Height: <strong style={{ color: 'white' }}>{player.height_cm} cm</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>Weight: <strong style={{ color: 'white' }}>{player.weight_kg} kg</strong></span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Skills: <strong style={{ color: 'white' }}>{player.skill_moves} ★</strong></span>
+                <span style={{ color: 'var(--text-muted)' }}>Weak Foot: <strong style={{ color: 'white' }}>{player.weak_foot} ★</strong></span>
+              </div>
             </div>
           </div>
 
-          {/* Radar Chart Card */}
-          <div className="stats-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
-            <h3 className="stats-card-title w-full">Attributes Radar</h3>
-            <div style={{ width: '260px', height: '260px' }}>
+          {/* Attributes Radar */}
+          <div className="stats-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h3 className="stats-card-title w-full">ATTRIBUTES RADAR</h3>
+            <div style={{ width: '100%', maxWidth: '280px', height: '280px' }}>
               <Radar data={radarData} options={radarOptions as any} />
             </div>
           </div>
         </div>
 
-        {/* Right Panel: Detailed Stats & Wage Calculator */}
-        <div className="detail-right-panel">
+        {/* Right Column: Wage Estimation & Detailed Stats */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          {/* Wage Calculator Panel */}
-          <div className="calculator-box">
-            <h3 className="stats-card-title">
-              <DollarSign size={18} />
-              Career Mode Wage Estimation
-            </h3>
+          {/* Header Title */}
+          <div>
+            <h1 className="detail-header-title">
+              <Wallet size={24} style={{ color: 'var(--accent-blue)' }} />
+              <span>CAREER MODE WAGE ESTIMATION</span>
+            </h1>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-              {/* Actual vs Estimated */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="calculator-results" style={{ borderRight: '1px solid var(--border-color)' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                    Actual In-Game Wage
-                  </span>
-                  <div className="calc-wage-val text-green" style={{ textShadow: 'none' }}>
-                    {formatCurrency(player.wage_eur)}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From database record</span>
+            {/* Wage Metrics Comparison Grid */}
+            <div className="wage-metrics-grid">
+              <div className="wage-metric-card">
+                <span className="wage-metric-label">ACTUAL IN-GAME WAGE</span>
+                <div className="wage-metric-val text-blue">
+                  {formatCurrency(player.wage_eur)}
                 </div>
-                
-                <div className="calculator-results">
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                    Estimated Model Wage
-                  </span>
-                  <div className="calc-wage-val">
-                    {formatCurrency(estimatedWage)}
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Calculated using reverse-engineered coefficients</span>
-                </div>
+                <span className="wage-metric-sub">From database record</span>
               </div>
 
-              {/* Slider Simulator */}
-              <div className="stats-card" style={{ backgroundColor: 'var(--bg-sidebar)', borderStyle: 'dashed' }}>
-                <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '1rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Sliders size={14} />
-                  Wage Calculator Simulator
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  
-                  {/* Overall */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Overall Rating (OVR)</span>
-                      <strong>{simOvr}</strong>
-                    </div>
-                    <input 
-                      type="range" min="40" max="99" value={simOvr} 
-                      onChange={(e) => setSimOvr(parseInt(e.target.value, 10))}
-                    />
-                  </div>
-
-                  {/* Potential */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Potential Rating (POT)</span>
-                      <strong>{simPot}</strong>
-                    </div>
-                    <input 
-                      type="range" min="40" max="99" value={simPot} 
-                      onChange={(e) => setSimPot(parseInt(e.target.value, 10))}
-                    />
-                  </div>
-
-                  {/* Age */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Age</span>
-                      <strong>{simAge}</strong>
-                    </div>
-                    <input 
-                      type="range" min="15" max="45" value={simAge} 
-                      onChange={(e) => setSimAge(parseInt(e.target.value, 10))}
-                    />
-                  </div>
-
-                  {/* Reputation */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>International Reputation</span>
-                      <strong>{simIr} Star{simIr > 1 ? 's' : ''}</strong>
-                    </div>
-                    <input 
-                      type="range" min="1" max="5" value={simIr} 
-                      onChange={(e) => setSimIr(parseInt(e.target.value, 10))}
-                    />
-                  </div>
-
-                  {/* Sim output result */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-card)', padding: '1rem', borderRadius: '6px', marginTop: '0.5rem', border: '1px solid var(--border-color)' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Simulated Wage Demand:</span>
-                    <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--accent-gold)' }}>
-                      {formatCurrency(simWage)}
-                    </span>
-                  </div>
+              <div className="wage-metric-card">
+                <span className="wage-metric-label">ESTIMATED MODEL WAGE</span>
+                <div className="wage-metric-val text-gold">
+                  {formatCurrency(estimatedWage)}
                 </div>
-              </div>
-
-              {/* Math breakdown */}
-              <div className="calc-breakdown">
-                <div className="calc-breakdown-row">
-                  <span>Base Regression Constant:</span>
-                  <span className="calc-breakdown-val">1.821668</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Overall Rating Multiplier (x{simOvr}):</span>
-                  <span className="calc-breakdown-val">+{(0.139067 * simOvr).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Potential Rating Dampener (x{simPot}):</span>
-                  <span className="calc-breakdown-val" style={{ color: 'var(--accent-red)' }}>-{(0.041871 * simPot).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Age Rookie Dampener (x{simAge}):</span>
-                  <span className="calc-breakdown-val" style={{ color: 'var(--accent-red)' }}>-{(0.025183 * simAge).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Reputation Premium Multiplier (x{simIr}):</span>
-                  <span className="calc-breakdown-val">+{(0.302240 * simIr).toFixed(4)}</span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>League Mod ({player.league_name || 'Other'} - Tier {leagueTier}):</span>
-                  <span className="calc-breakdown-val">
-                    +{leagueTier === 1 ? '1.7540' : leagueTier === 2 ? '1.2878' : leagueTier === 3 ? '0.8507' : '0.0000'}
-                  </span>
-                </div>
-                <div className="calc-breakdown-row">
-                  <span>Position Mod ({positionCat}):</span>
-                  <span className="calc-breakdown-val">
-                    {positionCat === 'GK' ? '-0.3646' : positionCat === 'DEF' ? '-0.1778' : positionCat === 'MID' ? '-0.1487' : '0.0000'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="calc-disclaimer">
-                Disclaimer: EA does not publish official career mode wage equations. This calculation is derived using log-linear regression analysis trained on the complete player dataset. Actual wages in Career Mode may vary based on contract length and negotiation bonuses.
+                <span className="wage-metric-sub">Calculated using reverse-engineered coefficients</span>
               </div>
             </div>
+
+            {/* Wage Calculator Simulator Box */}
+            <div className="sim-box-panel">
+              <div className="sim-box-title">
+                <SlidersHorizontal size={16} />
+                <span>WAGE CALCULATOR SIMULATOR</span>
+              </div>
+
+              <div className="sim-slider-group">
+                {/* Overall */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Overall Rating (OVR)</span>
+                    <span className="skill-slider-value">{simOvr}</span>
+                  </div>
+                  <input 
+                    type="range" min="40" max="99" value={simOvr} 
+                    onChange={(e) => setSimOvr(parseInt(e.target.value, 10))}
+                  />
+                </div>
+
+                {/* Potential */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Potential Rating (POT)</span>
+                    <span className="skill-slider-value">{simPot}</span>
+                  </div>
+                  <input 
+                    type="range" min="40" max="99" value={simPot} 
+                    onChange={(e) => setSimPot(parseInt(e.target.value, 10))}
+                  />
+                </div>
+
+                {/* Age */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Age</span>
+                    <span className="skill-slider-value">{simAge}</span>
+                  </div>
+                  <input 
+                    type="range" min="15" max="45" value={simAge} 
+                    onChange={(e) => setSimAge(parseInt(e.target.value, 10))}
+                  />
+                </div>
+
+                {/* Reputation */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">International Reputation</span>
+                    <span className="skill-slider-value">{simIr} Stars</span>
+                  </div>
+                  <input 
+                    type="range" min="1" max="5" value={simIr} 
+                    onChange={(e) => setSimIr(parseInt(e.target.value, 10))}
+                  />
+                </div>
+              </div>
+
+              {/* Simulated Wage Banner Result */}
+              <div className="sim-result-banner">
+                <span className="sim-result-label">Simulated Wage Demand:</span>
+                <span className="sim-result-amount">{formatCurrency(simWage)}</span>
+              </div>
+            </div>
+
+            {/* Monospace Math Breakdown */}
+            <div className="math-breakdown-code">
+              <div>Base Regression Constant: 1.821668</div>
+              <div>Overall Rating Multiplier (x{simOvr}): +{(0.139067 * simOvr).toFixed(4)}</div>
+              <div>Potential Rating Dampener (x{simPot}): -{(0.041871 * simPot).toFixed(4)}</div>
+              <div>Age Rookie Dampener (x{simAge}): -{(0.025183 * simAge).toFixed(4)}</div>
+              <div>Reputation Premium Multiplier (x{simIr}): +{(0.302240 * simIr).toFixed(4)}</div>
+              <div>League Mod ({player.league_name || 'Other'} - Tier {leagueTier}): +{leagueTier === 1 ? '1.7540' : leagueTier === 2 ? '1.2878' : leagueTier === 3 ? '0.8507' : '0.0000'}</div>
+              <div>Position Mod ({positionCat}): {positionCat === 'GK' ? '-0.3646' : positionCat === 'DEF' ? '-0.1778' : positionCat === 'MID' ? '-0.1487' : '0.0000'}</div>
+            </div>
+
+            <p className="calc-disclaimer-text">
+              Disclaimer: EA does not publish official career mode wage equations. This calculation is derived using log-linear regression analysis trained on the complete player dataset. Actual wages in Career Mode may vary based on contract length and negotiation bonuses.
+            </p>
           </div>
 
-          {/* Club Info & Budget */}
-          {player.transfer_budget_eur && (
-            <div className="stats-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '4px solid var(--accent-blue)' }}>
-              <h3 style={{ fontSize: '1rem', textTransform: 'uppercase', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}>
-                <Shield size={16} />
-                Club Economics ({player.club_name})
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Transfer Budget:</div>
-                  <strong style={{ fontSize: '1.2rem', color: 'var(--accent-green)' }}>{formatCurrency(player.transfer_budget_eur)}</strong>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Club Worth:</div>
-                  <strong style={{ fontSize: '1.2rem', color: 'white' }}>{formatCurrency(player.club_worth_eur)}</strong>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Squad Rating:</div>
-                  <strong style={{ fontSize: '1.1rem', color: 'white' }}>{player.team_overall} OVR</strong>
-                </div>
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>Market Release Clause:</div>
-                  <strong style={{ fontSize: '1.1rem', color: 'var(--accent-gold)' }}>{formatCurrency(player.release_clause_eur)}</strong>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Player Detailed Stats Cards */}
-          <div className="stats-card-group">
-            
-            {/* GK Goalkeeping Stats card */}
+          {/* Detailed Attributes Cards Grid */}
+          <div className="detailed-stats-grid">
+            {/* Goalkeeping if GK */}
             {isGK && (
-              <div className="stats-card">
-                <h3 className="stats-card-title">{gkGroup.title}</h3>
+              <div className="stat-category-card">
+                <div className="stat-category-title">{gkGroup.title}</div>
                 {gkGroup.stats.map((stat, idx) => (
-                  <div key={idx} className="stat-row">
-                    <span className="stat-label">{stat.label}</span>
-                    <div className="stat-value-container">
-                      <div className="stat-progress-bar">
-                        <div 
-                          className="stat-progress-fill" 
-                          style={{ width: `${stat.val || 0}%`, backgroundColor: getProgressColor(stat.val || 0) }}
-                        ></div>
-                      </div>
-                      <span className="stat-value" style={{ color: getProgressColor(stat.val || 0) }}>{stat.val || 0}</span>
-                    </div>
+                  <div key={idx} className="stat-item-row">
+                    <span className="stat-item-name">{stat.label}</span>
+                    <span className="stat-item-num" style={{ color: getStatColor(stat.val) }}>{stat.val || 0}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* General Stats groups */}
-            {Object.entries(statsGroups).map(([key, group]) => {
-              // Hide defending if the player is a keeper (GK) to make space, or keep it, up to you. Let's keep it.
-              return (
-                <div key={key} className="stats-card">
-                  <h3 className="stats-card-title">{group.title}</h3>
-                  {group.stats.map((stat, idx) => (
-                    <div key={idx} className="stat-row">
-                      <span className="stat-label">{stat.label}</span>
-                      <div className="stat-value-container">
-                        <div className="stat-progress-bar">
-                          <div 
-                            className="stat-progress-fill" 
-                            style={{ width: `${stat.val || 0}%`, backgroundColor: getProgressColor(stat.val || 0) }}
-                          ></div>
-                        </div>
-                        <span className="stat-value" style={{ color: getProgressColor(stat.val || 0) }}>{stat.val || 0}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
+            {/* All 6 Stat Groups */}
+            {Object.entries(statsGroups).map(([key, group]) => (
+              <div key={key} className="stat-category-card">
+                <div className="stat-category-title">{group.title}</div>
+                {group.stats.map((stat, idx) => (
+                  <div key={idx} className="stat-item-row">
+                    <span className="stat-item-name">{stat.label}</span>
+                    <span className="stat-item-num" style={{ color: getStatColor(stat.val) }}>{stat.val || 0}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
 
         </div>

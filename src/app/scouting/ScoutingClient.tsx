@@ -229,346 +229,388 @@ export default function ScoutingClient({
       {/* Sidebar Filters */}
       <aside className={`sidebar-filter ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-title">
-          <span>Search Filters</span>
+          <h2>Search Filters</h2>
           <button 
             className="sidebar-toggle-btn"
-            style={{ display: 'none' }} /* only shown on mobile */
+            style={{ display: 'none' }}
             onClick={() => setIsSidebarOpen(false)}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Text Search */}
-        <div className="filter-group">
-          <label className="filter-label">Player Name</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type="text"
+        <div className="sidebar-content">
+          {/* Text Search */}
+          <div className="filter-group">
+            <label className="filter-label">Player Name</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                className="filter-input"
+                placeholder="e.g. Messi, Mbappe..."
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && applyFilters({ search: searchVal })}
+              />
+              <Search 
+                size={16} 
+                style={{ position: 'absolute', right: '12px', top: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                onClick={() => applyFilters({ search: searchVal })}
+              />
+            </div>
+          </div>
+
+          {/* Position */}
+          <div className="filter-group">
+            <label className="filter-label">Position</label>
+            <select
               className="filter-input"
-              placeholder="e.g. Messi, Mbappe..."
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && applyFilters({ search: searchVal })}
-            />
-            <Search 
-              size={16} 
-              style={{ position: 'absolute', right: '12px', top: '12px', color: 'var(--text-muted)', cursor: 'pointer' }}
-              onClick={() => applyFilters({ search: searchVal })}
-            />
+              value={positionVal}
+              onChange={(e) => {
+                setPositionVal(e.target.value);
+                applyFilters({ position: e.target.value });
+              }}
+            >
+              <option value="">All Positions</option>
+              <optgroup label="General">
+                <option value="FWD">FWD (Forwards)</option>
+                <option value="MID">MID (Midfielders)</option>
+                <option value="DEF">DEF (Defenders)</option>
+                <option value="GK">GK (Goalkeepers)</option>
+              </optgroup>
+              <optgroup label="Specific">
+                <option value="ST">ST (Striker)</option>
+                <option value="CF">CF (Center Forward)</option>
+                <option value="LW">LW (Left Wing)</option>
+                <option value="RW">RW (Right Wing)</option>
+                <option value="CAM">CAM (Attacking Mid)</option>
+                <option value="CM">CM (Central Mid)</option>
+                <option value="CDM">CDM (Defensive Mid)</option>
+                <option value="LM">LM (Left Mid)</option>
+                <option value="RM">RM (Right Mid)</option>
+                <option value="CB">CB (Center Back)</option>
+                <option value="LB">LB (Left Back)</option>
+                <option value="RB">RB (Right Back)</option>
+                <option value="LWB">LWB (Left Wing Back)</option>
+                <option value="RWB">RWB (Right Wing Back)</option>
+              </optgroup>
+            </select>
           </div>
-        </div>
 
-        {/* Position */}
-        <div className="filter-group">
-          <label className="filter-label">Position</label>
-          <select
-            className="filter-input"
-            value={positionVal}
-            onChange={(e) => {
-              setPositionVal(e.target.value);
-              applyFilters({ position: e.target.value });
-            }}
-          >
-            <option value="">All Positions</option>
-            <optgroup label="General">
-              <option value="FWD">FWD (Forwards)</option>
-              <option value="MID">MID (Midfielders)</option>
-              <option value="DEF">DEF (Defenders)</option>
-              <option value="GK">GK (Goalkeepers)</option>
-            </optgroup>
-            <optgroup label="Specific">
-              <option value="ST">ST (Striker)</option>
-              <option value="CF">CF (Center Forward)</option>
-              <option value="LW">LW (Left Wing)</option>
-              <option value="RW">RW (Right Wing)</option>
-              <option value="CAM">CAM (Attacking Mid)</option>
-              <option value="CM">CM (Central Mid)</option>
-              <option value="CDM">CDM (Defensive Mid)</option>
-              <option value="LM">LM (Left Mid)</option>
-              <option value="RM">RM (Right Mid)</option>
-              <option value="CB">CB (Center Back)</option>
-              <option value="LB">LB (Left Back)</option>
-              <option value="RB">RB (Right Back)</option>
-              <option value="LWB">LWB (Left Wing Back)</option>
-              <option value="RWB">RWB (Right Wing Back)</option>
-            </optgroup>
-          </select>
-        </div>
-
-        {/* Overall Rating Range */}
-        <div className="filter-group">
-          <label className="filter-label">Overall ({minOvr} - {maxOvr})</label>
-          <div className="filter-row">
-            <div className="range-container">
-              <input
-                type="range"
-                min="40"
-                max="99"
-                value={minOvr}
-                onChange={(e) => setMinOvr(e.target.value)}
-                onMouseUp={() => applyFilters({ min_overall: minOvr })}
-                onTouchEnd={() => applyFilters({ min_overall: minOvr })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Min: 40</span><span>{minOvr}</span></div>
+          {/* Overall Rating Range */}
+          <div className="filter-group">
+            <div className="skill-slider-header">
+              <label className="filter-label">Overall Rating</label>
+              <span className="skill-slider-value">{minOvr} - {maxOvr}</span>
             </div>
-            <div className="range-container">
-              <input
-                type="range"
-                min="40"
-                max="99"
-                value={maxOvr}
-                onChange={(e) => setMaxOvr(e.target.value)}
-                onMouseUp={() => applyFilters({ max_overall: maxOvr })}
-                onTouchEnd={() => applyFilters({ max_overall: maxOvr })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Max: 99</span><span>{maxOvr}</span></div>
+            <div className="filter-range-group">
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Min</span>
+                  <span className="sub-value">{minOvr}</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="99"
+                  value={minOvr}
+                  onChange={(e) => setMinOvr(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_overall: minOvr })}
+                  onTouchEnd={() => applyFilters({ min_overall: minOvr })}
+                />
+              </div>
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Max</span>
+                  <span className="sub-value">{maxOvr}</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="99"
+                  value={maxOvr}
+                  onChange={(e) => setMaxOvr(e.target.value)}
+                  onMouseUp={() => applyFilters({ max_overall: maxOvr })}
+                  onTouchEnd={() => applyFilters({ max_overall: maxOvr })}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Potential Range */}
-        <div className="filter-group">
-          <label className="filter-label">Potential ({minPot} - {maxPot})</label>
-          <div className="filter-row">
-            <div className="range-container">
-              <input
-                type="range"
-                min="40"
-                max="99"
-                value={minPot}
-                onChange={(e) => setMinPot(e.target.value)}
-                onMouseUp={() => applyFilters({ min_potential: minPot })}
-                onTouchEnd={() => applyFilters({ min_potential: minPot })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Min: 40</span><span>{minPot}</span></div>
+          {/* Potential Range */}
+          <div className="filter-group">
+            <div className="skill-slider-header">
+              <label className="filter-label">Potential</label>
+              <span className="skill-slider-value">{minPot} - {maxPot}</span>
             </div>
-            <div className="range-container">
-              <input
-                type="range"
-                min="40"
-                max="99"
-                value={maxPot}
-                onChange={(e) => setMaxPot(e.target.value)}
-                onMouseUp={() => applyFilters({ max_potential: maxPot })}
-                onTouchEnd={() => applyFilters({ max_potential: maxPot })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Max: 99</span><span>{maxPot}</span></div>
+            <div className="filter-range-group">
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Min</span>
+                  <span className="sub-value">{minPot}</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="99"
+                  value={minPot}
+                  onChange={(e) => setMinPot(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_potential: minPot })}
+                  onTouchEnd={() => applyFilters({ min_potential: minPot })}
+                />
+              </div>
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Max</span>
+                  <span className="sub-value">{maxPot}</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="99"
+                  value={maxPot}
+                  onChange={(e) => setMaxPot(e.target.value)}
+                  onMouseUp={() => applyFilters({ max_potential: maxPot })}
+                  onTouchEnd={() => applyFilters({ max_potential: maxPot })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Age Range */}
+          <div className="filter-group">
+            <div className="skill-slider-header">
+              <label className="filter-label">Age Range</label>
+              <span className="skill-slider-value">{minAgeVal} - {maxAgeVal} yrs</span>
+            </div>
+            <div className="filter-range-group">
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Min</span>
+                  <span className="sub-value">{minAgeVal}</span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="45"
+                  value={minAgeVal}
+                  onChange={(e) => setMinAgeVal(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_age: minAgeVal })}
+                  onTouchEnd={() => applyFilters({ min_age: minAgeVal })}
+                />
+              </div>
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Max</span>
+                  <span className="sub-value">{maxAgeVal}</span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="45"
+                  value={maxAgeVal}
+                  onChange={(e) => setMaxAgeVal(e.target.value)}
+                  onMouseUp={() => applyFilters({ max_age: maxAgeVal })}
+                  onTouchEnd={() => applyFilters({ max_age: maxAgeVal })}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Age Range */}
-        <div className="filter-group">
-          <label className="filter-label">Age ({minAgeVal} - {maxAgeVal})</label>
-          <div className="filter-row">
-            <div className="range-container">
-              <input
-                type="range"
-                min="15"
-                max="45"
-                value={minAgeVal}
-                onChange={(e) => setMinAgeVal(e.target.value)}
-                onMouseUp={() => applyFilters({ min_age: minAgeVal })}
-                onTouchEnd={() => applyFilters({ min_age: minAgeVal })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Min: 15</span><span>{minAgeVal}</span></div>
-            </div>
-            <div className="range-container">
-              <input
-                type="range"
-                min="15"
-                max="45"
-                value={maxAgeVal}
-                onChange={(e) => setMaxAgeVal(e.target.value)}
-                onMouseUp={() => applyFilters({ max_age: maxAgeVal })}
-                onTouchEnd={() => applyFilters({ max_age: maxAgeVal })}
-                style={{ width: '100%' }}
-              />
-              <div className="range-labels"><span>Max: 45</span><span>{maxAgeVal}</span></div>
-            </div>
+          {/* League */}
+          <div className="filter-group">
+            <label className="filter-label">League</label>
+            <select
+              className="filter-input"
+              value={leagueVal}
+              onChange={(e) => {
+                setLeagueVal(e.target.value);
+                applyFilters({ league: e.target.value, club: '' });
+              }}
+            >
+              <option value="">All Leagues</option>
+              {metadata.leagues.map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        {/* League */}
-        <div className="filter-group">
-          <label className="filter-label">League</label>
-          <select
-            className="filter-input"
-            value={leagueVal}
-            onChange={(e) => {
-              setLeagueVal(e.target.value);
-              applyFilters({ league: e.target.value, club: '' }); // reset club if league changes
-            }}
-          >
-            <option value="">All Leagues</option>
-            {metadata.leagues.map(l => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Club */}
-        <div className="filter-group">
-          <label className="filter-label">Club</label>
-          <select
-            className="filter-input"
-            value={clubVal}
-            onChange={(e) => {
-              setClubVal(e.target.value);
-              applyFilters({ club: e.target.value });
-            }}
-          >
-            <option value="">All Clubs</option>
-            {metadata.clubs.map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Nationality */}
-        <div className="filter-group">
-          <label className="filter-label">Nationality</label>
-          <select
-            className="filter-input"
-            value={nationalityVal}
-            onChange={(e) => {
-              setNationalityVal(e.target.value);
-              applyFilters({ nationality: e.target.value });
-            }}
-          >
-            <option value="">All Nationalities</option>
-            {metadata.nationalities.map(n => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Accordion: Skill Attributes */}
-        <div className="filter-accordion">
-          <div 
-            className="filter-accordion-header"
-            onClick={() => setIsSkillsOpen(!isSkillsOpen)}
-          >
-            <span>Skill Attributes</span>
-            <SlidersHorizontal size={14} />
+          {/* Club */}
+          <div className="filter-group">
+            <label className="filter-label">Club</label>
+            <select
+              className="filter-input"
+              value={clubVal}
+              onChange={(e) => {
+                setClubVal(e.target.value);
+                applyFilters({ club: e.target.value });
+              }}
+            >
+              <option value="">All Clubs</option>
+              {metadata.clubs.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
-          {isSkillsOpen && (
-            <div className="filter-accordion-content">
-              {/* Pace */}
-              <div className="filter-group">
-                <label className="filter-label">Pace ({minPace}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minPace}
-                  onChange={(e) => setMinPace(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_pace: minPace })}
-                  onTouchEnd={() => applyFilters({ min_pace: minPace })}
-                />
-              </div>
-              {/* Shooting */}
-              <div className="filter-group">
-                <label className="filter-label">Shooting ({minShooting}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minShooting}
-                  onChange={(e) => setMinShooting(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_shooting: minShooting })}
-                  onTouchEnd={() => applyFilters({ min_shooting: minShooting })}
-                />
-              </div>
-              {/* Passing */}
-              <div className="filter-group">
-                <label className="filter-label">Passing ({minPassing}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minPassing}
-                  onChange={(e) => setMinPassing(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_passing: minPassing })}
-                  onTouchEnd={() => applyFilters({ min_passing: minPassing })}
-                />
-              </div>
-              {/* Dribbling */}
-              <div className="filter-group">
-                <label className="filter-label">Dribbling ({minDribbling}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minDribbling}
-                  onChange={(e) => setMinDribbling(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_dribbling: minDribbling })}
-                  onTouchEnd={() => applyFilters({ min_dribbling: minDribbling })}
-                />
-              </div>
-              {/* Defending */}
-              <div className="filter-group">
-                <label className="filter-label">Defending ({minDefending}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minDefending}
-                  onChange={(e) => setMinDefending(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_defending: minDefending })}
-                  onTouchEnd={() => applyFilters({ min_defending: minDefending })}
-                />
-              </div>
-              {/* Physic */}
-              <div className="filter-group">
-                <label className="filter-label">Physicality ({minPhysic}+)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="99"
-                  value={minPhysic}
-                  onChange={(e) => setMinPhysic(e.target.value)}
-                  onMouseUp={() => applyFilters({ min_physic: minPhysic })}
-                  onTouchEnd={() => applyFilters({ min_physic: minPhysic })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Clear Filters Button */}
-        <button 
-          className="btn btn-secondary w-full"
-          onClick={clearFilters}
-          style={{ marginTop: 'auto' }}
-        >
-          <FilterX size={16} />
-          <span>Clear Filters</span>
-        </button>
+          {/* Nationality */}
+          <div className="filter-group">
+            <label className="filter-label">Nationality</label>
+            <select
+              className="filter-input"
+              value={nationalityVal}
+              onChange={(e) => {
+                setNationalityVal(e.target.value);
+                applyFilters({ nationality: e.target.value });
+              }}
+            >
+              <option value="">All Nationalities</option>
+              {metadata.nationalities.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Accordion: Skill Attributes */}
+          <div className="filter-group">
+            <button 
+              type="button"
+              className="filter-accordion-btn"
+              onClick={() => setIsSkillsOpen(!isSkillsOpen)}
+            >
+              <span>Skill Attributes</span>
+              <SlidersHorizontal size={14} />
+            </button>
+            {isSkillsOpen && (
+              <div className="filter-accordion-content">
+                {/* Pace */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Pace</span>
+                    <span className="skill-slider-value">{minPace}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minPace}
+                    onChange={(e) => setMinPace(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_pace: minPace })}
+                    onTouchEnd={() => applyFilters({ min_pace: minPace })}
+                  />
+                </div>
+                {/* Shooting */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Shooting</span>
+                    <span className="skill-slider-value">{minShooting}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minShooting}
+                    onChange={(e) => setMinShooting(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_shooting: minShooting })}
+                    onTouchEnd={() => applyFilters({ min_shooting: minShooting })}
+                  />
+                </div>
+                {/* Passing */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Passing</span>
+                    <span className="skill-slider-value">{minPassing}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minPassing}
+                    onChange={(e) => setMinPassing(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_passing: minPassing })}
+                    onTouchEnd={() => applyFilters({ min_passing: minPassing })}
+                  />
+                </div>
+                {/* Dribbling */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Dribbling</span>
+                    <span className="skill-slider-value">{minDribbling}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minDribbling}
+                    onChange={(e) => setMinDribbling(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_dribbling: minDribbling })}
+                    onTouchEnd={() => applyFilters({ min_dribbling: minDribbling })}
+                  />
+                </div>
+                {/* Defending */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Defending</span>
+                    <span className="skill-slider-value">{minDefending}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minDefending}
+                    onChange={(e) => setMinDefending(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_defending: minDefending })}
+                    onTouchEnd={() => applyFilters({ min_defending: minDefending })}
+                  />
+                </div>
+                {/* Physic */}
+                <div className="skill-slider-row">
+                  <div className="skill-slider-header">
+                    <span className="skill-slider-label">Physicality</span>
+                    <span className="skill-slider-value">{minPhysic}+</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="99"
+                    value={minPhysic}
+                    onChange={(e) => setMinPhysic(e.target.value)}
+                    onMouseUp={() => applyFilters({ min_physic: minPhysic })}
+                    onTouchEnd={() => applyFilters({ min_physic: minPhysic })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Clear Filters Button */}
+          <button 
+            className="btn btn-secondary w-full"
+            onClick={clearFilters}
+            style={{ marginTop: '0.5rem' }}
+          >
+            <FilterX size={16} />
+            <span>Clear Filters</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main Content Area */}
-      <section className="content-area">
-        <div className="page-header">
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+      <section className="scouting-main">
+        <div className="scouting-toolbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button 
               className="sidebar-toggle-btn"
-              style={{ display: 'inline-flex' }} /* dynamically handled in media queries */
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             >
               <Menu size={18} />
+              <span>Filters</span>
             </button>
-            <h1 className="page-title">Player Scouting</h1>
+            <h1 className="page-title">Scouting</h1>
           </div>
           
           <div className="scouting-results-header">
-            <span>Total Players: <strong>{pagination.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong></span>
+            <span><strong>{pagination.total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</strong> players found</span>
           </div>
         </div>
 
@@ -677,41 +719,39 @@ export default function ScoutingClient({
       {/* Mobile View Player Cards (Mobile Only) */}
       <div className="mobile-only-cards">
         {initialPlayers.length === 0 ? (
-          <div className="stats-card text-center" style={{ padding: '2rem', color: 'var(--text-muted)' }}>
-            No players found matching your criteria.
+          <div className="empty-state">
+            <div className="empty-state-icon"><Search size={48} /></div>
+            <p>No players found matching your criteria.</p>
           </div>
         ) : (
           initialPlayers.map((player) => {
             const isStarred = shortlist.includes(player.player_id);
             return (
               <div key={player.player_id} className="mobile-player-card" onClick={() => router.push(`/players/${player.player_id}`)}>
-                {/* Left OVR/POT Badges */}
-                <div className="mobile-card-left">
+                <div className="mobile-card-badge">
                   <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
                     {player.overall}
                   </span>
-                  <span className="badge-pos" style={{ fontSize: '0.7rem', padding: '1px 4px', background: 'rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
-                    {player.player_positions.split(',')[0]}
+                  <span className={`badge-pos ${getPositionBadgeClass(player.player_positions)}`}>
+                    {player.player_positions.split(',')[0].trim()}
                   </span>
                 </div>
                 
-                {/* Center Name/Club */}
                 <div className="mobile-card-center">
                   <div className="mobile-card-name">{player.short_name}</div>
-                  <div className="mobile-card-club">
-                    {player.club_name || 'Free Agent'} • {player.age} yrs
+                  <div className="mobile-card-meta">
+                    {player.club_name || 'Free Agent'} &bull; {player.nationality_name} &bull; {player.age} yrs
                   </div>
                 </div>
                 
-                {/* Right Value/Wage & Star */}
                 <div className="mobile-card-right">
-                  <div className="mobile-card-val text-green">{formatCurrency(player.value_eur)}</div>
-                  <div className="mobile-card-wage text-gold">{formatCurrency(player.wage_eur)} / wk</div>
+                  <div className="mobile-card-value">{formatCurrency(player.value_eur)}</div>
+                  <div className="mobile-card-wage">{formatCurrency(player.wage_eur)}/wk</div>
                   <button 
                     onClick={(e) => toggleShortlist(player.player_id, e)}
-                    style={{ background: 'none', border: 'none', color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)', cursor: 'pointer', marginTop: '0.2rem' }}
+                    style={{ background: 'none', border: 'none', color: isStarred ? 'var(--accent-gold)' : 'var(--text-muted)', cursor: 'pointer' }}
                   >
-                    {isStarred ? <Star size={16} fill="var(--accent-gold)" /> : <Star size={16} />}
+                    {isStarred ? <Star size={15} fill="var(--accent-gold)" /> : <Star size={15} />}
                   </button>
                 </div>
               </div>
@@ -767,14 +807,6 @@ export default function ScoutingClient({
         )}
       </section>
       
-      {/* Responsive toggle custom CSS overlay */}
-      <style jsx global>{`
-        @media (max-width: 768px) {
-          .sidebar-toggle-btn {
-            display: inline-flex !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

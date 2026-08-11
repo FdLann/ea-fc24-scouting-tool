@@ -193,11 +193,15 @@ export default async function ScoutingPage({ searchParams }: PageProps) {
   };
 
   return (
-    <ScoutingClient 
-      initialPlayers={players} 
-      metadata={metadata} 
-      pagination={pagination} 
-      searchParams={resolvedParams}
-    />
+    <div className="content-area">
+      <div className="scouting-layout">
+        <ScoutingClient 
+          initialPlayers={players} 
+          metadata={metadata} 
+          pagination={pagination} 
+          searchParams={resolvedParams}
+        />
+      </div>
+    </div>
   );
 }
