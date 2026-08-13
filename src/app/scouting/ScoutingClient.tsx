@@ -6,8 +6,21 @@ import Link from 'next/link';
 import { Player } from './page';
 import { 
   Search, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, 
-  Star, StarOff, FilterX, HelpCircle, Eye, Menu, X
+  Star, StarOff, FilterX, HelpCircle, Eye, Menu, X, Sparkles, Zap, DollarSign, CheckSquare, Square, Maximize2 
 } from 'lucide-react';
+import { formatCurrencyWithSettings, getStoredScoutMode } from '@/lib/settings';
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Radar } from 'react-chartjs-2';
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 interface ScoutingClientProps {
   initialPlayers: Player[];
@@ -43,6 +56,25 @@ export default function ScoutingClient({
   // Local state for shortlist player IDs
   const [shortlist, setShortlist] = useState<number[]>([]);
 
+  // Compare Players state (max 3 players)
+  const [compareList, setCompareList] = useState<Player[]>([]);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
+
+  // Jump to Page input state
+  const [jumpPageInput, setJumpPageInput] = useState('');
+
+  // Scout Mode state
+  const [isMounted, setIsMounted] = useState(false);
+  const [scoutMode, setScoutMode] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setScoutMode(getStoredScoutMode());
+    const handleSettings = () => setScoutMode(getStoredScoutMode());
+    window.addEventListener('fc24_settings_change', handleSettings);
+    return () => window.removeEventListener('fc24_settings_change', handleSettings);
+  }, []);
+
   // Load shortlist on mount
   useEffect(() => {
     const saved = localStorage.getItem('fc24_shortlist');
@@ -67,6 +99,29 @@ export default function ScoutingClient({
     }
     setShortlist(updated);
     localStorage.setItem('fc24_shortlist', JSON.stringify(updated));
+  };
+
+  // Toggle Compare Player
+  const toggleComparePlayer = (player: Player, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (compareList.some(p => p.player_id === player.player_id)) {
+      setCompareList(compareList.filter(p => p.player_id !== player.player_id));
+    } else {
+      if (compareList.length >= 3) {
+        alert('You can compare up to 3 players at once.');
+        return;
+      }
+      setCompareList([...compareList, player]);
+    }
+  };
+
+  // Render rating with Scout Mode support
+  const renderRatingDisplay = (rating: number) => {
+    if (!isMounted || !scoutMode) return rating.toString();
+    const low = Math.max(40, rating - 2);
+    const high = Math.min(99, rating + 2);
+    return `${low}-${high}`;
   };
 
   // Helper to get rating badge class
@@ -109,6 +164,10 @@ export default function ScoutingClient({
   const [maxPot, setMaxPot] = useState(searchParams.max_potential || '99');
   const [minAgeVal, setMinAgeVal] = useState(searchParams.min_age || '15');
   const [maxAgeVal, setMaxAgeVal] = useState(searchParams.max_age || '50');
+  const [minValue, setMinValue] = useState(searchParams.min_value || searchParams.minValue || '0');
+  const [maxValue, setMaxValue] = useState(searchParams.max_value || searchParams.maxValue || '300000000');
+  const [minWage, setMinWage] = useState(searchParams.min_wage || searchParams.minWage || '0');
+  const [maxWage, setMaxWage] = useState(searchParams.max_wage || searchParams.maxWage || '600000');
 
   // Skill Filters state
   const [minPace, setMinPace] = useState(searchParams.min_pace || '0');
@@ -149,6 +208,10 @@ export default function ScoutingClient({
       max_potential: maxPot,
       min_age: minAgeVal,
       max_age: maxAgeVal,
+      min_value: minValue,
+      max_value: maxValue,
+      min_wage: minWage,
+      max_wage: maxWage,
       min_pace: minPace,
       max_pace: maxPace,
       min_shooting: minShooting,
@@ -163,23 +226,14 @@ export default function ScoutingClient({
       max_physic: maxPhysic,
       sort_by: searchParams.sort_by || 'overall',
       sort_order: searchParams.sort_order || 'desc',
-      page: '1', // default reset to page 1 on filter change
-      limit: pagination.limit.toString(),
+      page: '1',
+      limit: searchParams.limit || '20',
       ...updates
     };
 
     Object.entries(current).forEach(([k, v]) => {
-      if (v !== '' && v !== null && v !== undefined && v !== '0' && v !== '99' && !(k.startsWith('min_') && v === '15') && !(k.startsWith('max_') && v === '50')) {
-        // Exception: keep ratings and age ranges if customized
-        if (['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k) && v === searchParams[k]) {
-          params.set(k, v);
-        } else if (!['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k)) {
-          params.set(k, v);
-        }
-      }
-      // Make sure we explicitly keep customized inputs
-      if (['min_overall', 'max_overall', 'min_potential', 'max_potential', 'min_age', 'max_age', 'min_pace', 'max_pace', 'min_shooting', 'max_shooting', 'min_passing', 'max_passing', 'min_dribbling', 'max_dribbling', 'min_defending', 'max_defending', 'min_physic', 'max_physic'].includes(k) && (v !== '0' || k.startsWith('min_') === false) && (v !== '99' || k.startsWith('max_') === false)) {
-        params.set(k, v);
+      if (v !== undefined && v !== null && v !== '') {
+        params.set(k, v.toString());
       }
     });
 
@@ -213,6 +267,10 @@ export default function ScoutingClient({
     setMaxPot('99');
     setMinAgeVal('15');
     setMaxAgeVal('50');
+    setMinValue('0');
+    setMaxValue('300000000');
+    setMinWage('0');
+    setMaxWage('600000');
     setMinPace('0');
     setMaxPace('99');
     setMinShooting('0');
@@ -426,6 +484,94 @@ export default function ScoutingClient({
             </div>
           </div>
 
+          {/* Market Value Range */}
+          <div className="filter-group">
+            <div className="skill-slider-header">
+              <label className="filter-label">Market Value Range</label>
+              <span className="skill-slider-value">
+                {formatCurrency(parseInt(minValue || '0'))} - {formatCurrency(parseInt(maxValue || '300000000'))}
+              </span>
+            </div>
+            <div className="filter-range-group">
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Min</span>
+                  <span className="sub-value">{formatCurrency(parseInt(minValue || '0'))}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="200000000"
+                  step="5000000"
+                  value={minValue}
+                  onChange={(e) => setMinValue(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_value: minValue })}
+                  onTouchEnd={() => applyFilters({ min_value: minValue })}
+                />
+              </div>
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Max</span>
+                  <span className="sub-value">{formatCurrency(parseInt(maxValue || '300000000'))}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="200000000"
+                  step="5000000"
+                  value={maxValue}
+                  onChange={(e) => setMaxValue(e.target.value)}
+                  onMouseUp={() => applyFilters({ max_value: maxValue })}
+                  onTouchEnd={() => applyFilters({ max_value: maxValue })}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Wage Range */}
+          <div className="filter-group">
+            <div className="skill-slider-header">
+              <label className="filter-label">Weekly Wage Range</label>
+              <span className="skill-slider-value">
+                {formatCurrency(parseInt(minWage || '0'))} - {formatCurrency(parseInt(maxWage || '600000'))}
+              </span>
+            </div>
+            <div className="filter-range-group">
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Min</span>
+                  <span className="sub-value">{formatCurrency(parseInt(minWage || '0'))}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="500000"
+                  step="10000"
+                  value={minWage}
+                  onChange={(e) => setMinWage(e.target.value)}
+                  onMouseUp={() => applyFilters({ min_wage: minWage })}
+                  onTouchEnd={() => applyFilters({ min_wage: minWage })}
+                />
+              </div>
+              <div className="skill-slider-row">
+                <div className="skill-slider-header">
+                  <span className="sub-label">Max</span>
+                  <span className="sub-value">{formatCurrency(parseInt(maxWage || '600000'))}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="500000"
+                  step="10000"
+                  value={maxWage}
+                  onChange={(e) => setMaxWage(e.target.value)}
+                  onMouseUp={() => applyFilters({ max_wage: maxWage })}
+                  onTouchEnd={() => applyFilters({ max_wage: maxWage })}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* League */}
           <div className="filter-group">
             <label className="filter-label">League</label>
@@ -612,6 +758,45 @@ export default function ScoutingClient({
 
       {/* Main Content Area */}
       <section className="scouting-main">
+        {/* Quick Presets Bar */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+            <Sparkles size={14} style={{ color: 'var(--accent-gold)' }} /> PRESETS:
+          </span>
+          <button
+            onClick={() => applyFilters({ preset: 'wonderkids', page: '1' })}
+            style={{ background: searchParams.preset === 'wonderkids' ? 'var(--accent-gold)' : 'var(--bg-card)', color: searchParams.preset === 'wonderkids' ? '#000' : 'white', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.3rem 0.75rem', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+          >
+            🌟 Wonderkids (U21 • POT 80+)
+          </button>
+          <button
+            onClick={() => applyFilters({ preset: 'bargain', page: '1' })}
+            style={{ background: searchParams.preset === 'bargain' ? 'var(--accent-green)' : 'var(--bg-card)', color: searchParams.preset === 'bargain' ? '#000' : 'white', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.3rem 0.75rem', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+          >
+            💰 Bargain Buys (&lt;€10M • OVR 75+)
+          </button>
+          <button
+            onClick={() => applyFilters({ preset: 'free_transfers', page: '1' })}
+            style={{ background: searchParams.preset === 'free_transfers' ? 'var(--accent-blue)' : 'var(--bg-card)', color: searchParams.preset === 'free_transfers' ? '#000' : 'white', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.3rem 0.75rem', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+          >
+            🆓 Free Transfers
+          </button>
+          <button
+            onClick={() => applyFilters({ preset: 'expiring', page: '1' })}
+            style={{ background: searchParams.preset === 'expiring' ? 'var(--accent-red)' : 'var(--bg-card)', color: searchParams.preset === 'expiring' ? '#white' : 'white', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '0.3rem 0.75rem', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+          >
+            ⏳ Expiring Contract (≤2024)
+          </button>
+          {searchParams.preset && (
+            <button
+              onClick={() => applyFilters({ preset: '', page: '1' })}
+              style={{ background: 'rgba(255,82,82,0.1)', color: 'var(--accent-red)', border: 'none', borderRadius: '20px', padding: '0.3rem 0.6rem', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+            >
+              Clear Preset ✕
+            </button>
+          )}
+        </div>
+
         <div className="scouting-toolbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button 
@@ -670,7 +855,8 @@ export default function ScoutingClient({
           <table className="scouting-table">
             <thead>
               <tr>
-                <th style={{ width: '40px' }} className="text-center">Fav</th>
+                <th style={{ width: '35px' }} className="text-center">Compare</th>
+                <th style={{ width: '35px' }} className="text-center">Fav</th>
                 <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('overall')}>
                   OVR <ArrowUpDown size={12} />
                 </th>
@@ -681,18 +867,17 @@ export default function ScoutingClient({
                   Name <ArrowUpDown size={12} />
                 </th>
                 <th style={{ width: '100px' }} className="text-center">Pos</th>
-                <th className="sortable text-center" onClick={() => handleSort('age')} style={{ width: '60px' }}>
+                <th className="sortable text-center" onClick={() => handleSort('age')} style={{ width: '50px' }}>
                   Age <ArrowUpDown size={12} />
                 </th>
                 <th>Club</th>
-                <th>Nationality</th>
-                <th className="sortable" onClick={() => handleSort('value_eur')} style={{ width: '100px' }}>
+                <th className="sortable" onClick={() => handleSort('value_eur')} style={{ width: '95px' }}>
                   Value <ArrowUpDown size={12} />
                 </th>
-                <th className="sortable" onClick={() => handleSort('wage_eur')} style={{ width: '100px' }}>
+                <th className="sortable" onClick={() => handleSort('wage_eur')} style={{ width: '95px' }}>
                   Wage <ArrowUpDown size={12} />
                 </th>
-                <th style={{ width: '60px' }} className="text-center">View</th>
+                <th style={{ width: '50px' }} className="text-center">View</th>
               </tr>
             </thead>
             <tbody>
@@ -705,8 +890,20 @@ export default function ScoutingClient({
               ) : (
                 initialPlayers.map((player) => {
                   const isStarred = shortlist.includes(player.player_id);
+                  const isCompared = compareList.some(p => p.player_id === player.player_id);
+
                   return (
-                    <tr key={player.player_id}>
+                    <tr key={player.player_id} style={{ background: isCompared ? 'rgba(0, 229, 255, 0.08)' : undefined }}>
+                      <td className="text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => toggleComparePlayer(player, e)}
+                          title="Select to compare side-by-side"
+                          style={{ background: 'none', border: 'none', color: isCompared ? 'var(--accent-blue)' : 'var(--text-muted)', cursor: 'pointer' }}
+                        >
+                          {isCompared ? <CheckSquare size={16} /> : <Square size={16} />}
+                        </button>
+                      </td>
                       <td className="text-center">
                         <button 
                           onClick={(e) => toggleShortlist(player.player_id, e)}
@@ -717,19 +914,19 @@ export default function ScoutingClient({
                       </td>
                       <td className="text-center">
                         <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
-                          {player.overall}
+                          {renderRatingDisplay(player.overall)}
                         </span>
                       </td>
                       <td className="text-center">
                         <span className={`badge-rating ${getRatingBadgeClass(player.potential)}`} style={{ opacity: 0.85 }}>
-                          {player.potential}
+                          {renderRatingDisplay(player.potential)}
                         </span>
                       </td>
                       <td>
                         <Link href={`/players/${player.player_id}`} style={{ fontWeight: '700' }}>
                           {player.short_name}
                         </Link>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.long_name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{player.long_name}</div>
                       </td>
                       <td className="text-center">
                         <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
@@ -743,14 +940,15 @@ export default function ScoutingClient({
                       <td className="text-center">{player.age}</td>
                       <td>
                         <div style={{ fontWeight: '500' }}>{player.club_name || 'Free Agent'}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.league_name || 'No League'}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {player.club_contract_valid_until_year ? `Contract ':${player.club_contract_valid_until_year}` : 'Free Agent'}
+                        </div>
                       </td>
-                      <td>{player.nationality_name}</td>
                       <td style={{ fontWeight: '700' }} className="text-green">
-                        {formatCurrency(player.value_eur)}
+                        {formatCurrencyWithSettings(player.value_eur)}
                       </td>
                       <td style={{ fontWeight: '700' }} className="text-gold">
-                        {formatCurrency(player.wage_eur)}
+                        {formatCurrencyWithSettings(player.wage_eur)}
                       </td>
                       <td className="text-center">
                         <Link href={`/players/${player.player_id}`} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '4px' }}>
@@ -830,12 +1028,53 @@ export default function ScoutingClient({
         )}
       </div>
 
-        {/* Pagination */}
+        {/* Pagination & Nav Controls */}
         {pagination.totalPages > 1 && (
-          <div className="pagination-container">
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Showing Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong>
-            </span>
+          <div className="pagination-container" style={{ flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong> ({pagination.total} players)
+              </span>
+
+              {/* Items per page selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span>Show:</span>
+                <select
+                  value={searchParams.limit || '20'}
+                  onChange={(e) => applyFilters({ limit: e.target.value, page: '1' })}
+                  style={{ background: 'var(--bg-sidebar)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'white', fontSize: '0.8rem', padding: '0.2rem 0.4rem' }}
+                >
+                  <option value="20">20 / page</option>
+                  <option value="50">50 / page</option>
+                  <option value="100">100 / page</option>
+                </select>
+              </div>
+
+              {/* Jump to page */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <input
+                  type="number"
+                  placeholder="Jump..."
+                  value={jumpPageInput}
+                  onChange={(e) => setJumpPageInput(e.target.value)}
+                  style={{ width: '65px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '0.2rem 0.4rem', color: 'white', fontSize: '0.8rem' }}
+                />
+                <button
+                  onClick={() => {
+                    const p = parseInt(jumpPageInput, 10);
+                    if (!isNaN(p) && p >= 1 && p <= pagination.totalPages) {
+                      handlePageChange(p);
+                      setJumpPageInput('');
+                    }
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                >
+                  Go
+                </button>
+              </div>
+            </div>
+
             <div className="pagination-buttons">
               <button 
                 className="pagination-btn"
@@ -883,7 +1122,159 @@ export default function ScoutingClient({
           </div>
         )}
       </section>
-      
+
+      {/* Floating Compare Action Bar */}
+      {isMounted && compareList.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--accent-blue)',
+          boxShadow: '0 8px 32px rgba(0, 229, 255, 0.25)',
+          borderRadius: '12px',
+          padding: '0.75rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          zIndex: 999
+        }}>
+          <div style={{ color: 'white', fontWeight: '800', fontSize: '0.88rem' }}>
+            <span style={{ color: 'var(--accent-blue)' }}>{compareList.length}</span> / 3 Players Selected
+          </div>
+          <button
+            onClick={() => setCompareModalOpen(true)}
+            className="btn"
+            style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', gap: '0.4rem' }}
+          >
+            <Maximize2 size={14} /> Compare Side-by-Side
+          </button>
+          <button
+            onClick={() => setCompareList([])}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Side-by-Side Compare Modal */}
+      {isMounted && compareModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: '900', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={22} style={{ color: 'var(--accent-blue)' }} />
+                <span>SIDE-BY-SIDE PLAYER COMPARISON</span>
+              </h2>
+              <button onClick={() => setCompareModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Comparison Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-muted)' }}>Attribute</th>
+                    {compareList.map(p => (
+                      <th key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', width: `${90 / compareList.length}%` }}>
+                        <div style={{ fontWeight: '900', fontSize: '1rem', color: 'white' }}>{p.short_name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{p.club_name || 'Free Agent'}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Overall (OVR)</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem' }}>
+                        <span className="badge-rating badge-gold" style={{ fontSize: '1rem' }}>{p.overall}</span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Potential (POT)</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem' }}>
+                        <span className="badge-rating badge-silver" style={{ fontSize: '1rem' }}>{p.potential}</span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Position</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem' }}>
+                        <span className="badge-pos pos-mid">{p.player_positions}</span>
+                      </td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Age</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '700' }}>{p.age} yrs</td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Market Value</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800', color: 'var(--accent-green)' }}>
+                        {formatCurrencyWithSettings(p.value_eur)}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Weekly Wage</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800', color: 'var(--accent-gold)' }}>
+                        {formatCurrencyWithSettings(p.wage_eur)}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Pace</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.pace || '--'}</td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Shooting</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.shooting || '--'}</td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Passing</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.passing || '--'}</td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Dribbling</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.dribbling || '--'}</td>
+                    ))}
+                  </tr>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Defending</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.defending || '--'}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '0.6rem', fontWeight: '700', color: 'var(--text-muted)' }}>Physicality</td>
+                    {compareList.map(p => (
+                      <td key={p.player_id} style={{ textAlign: 'center', padding: '0.6rem', fontWeight: '800' }}>{p.physic || '--'}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

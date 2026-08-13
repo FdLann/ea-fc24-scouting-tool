@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  Star, Trash2, ArrowUpDown, Eye, ArrowLeft, Loader2, HelpCircle 
+  Star, Trash2, ArrowUpDown, Eye, ArrowLeft, Loader2, HelpCircle, Printer, FileText, Tag, Download 
 } from 'lucide-react';
+import { formatCurrencyWithSettings } from '@/lib/settings';
 
 interface Player {
   player_id: number;
@@ -22,6 +23,8 @@ interface Player {
   nationality_name: string;
 }
 
+export type ShortlistCategory = 'Target Musim Ini' | 'Long-term Wishlist' | 'Backup Plan' | 'Uncategorized';
+
 export default function ShortlistPage() {
   const router = useRouter();
   const [playerIds, setPlayerIds] = useState<number[]>([]);
@@ -33,21 +36,40 @@ export default function ShortlistPage() {
   const [sortBy, setSortBy] = useState<string>('overall');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Load shortlist on mount
+  // Category & Notes state
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('ALL');
+  const [shortlistMeta, setShortlistMeta] = useState<{ [id: number]: { note?: string; category?: ShortlistCategory } }>({});
+
+  // Load shortlist & metadata on mount
   useEffect(() => {
     const saved = localStorage.getItem('fc24_shortlist');
+    const savedMeta = localStorage.getItem('fc24_shortlist_meta');
     if (saved) {
       try {
         const ids = JSON.parse(saved) as number[];
         setPlayerIds(ids);
       } catch (e) {
         console.error(e);
-        setIsLoading(false);
       }
-    } else {
-      setIsLoading(false);
     }
+    if (savedMeta) {
+      try {
+        setShortlistMeta(JSON.parse(savedMeta));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setIsLoading(false);
   }, []);
+
+  const updateMeta = (playerId: number, updates: { note?: string; category?: ShortlistCategory }) => {
+    const next = {
+      ...shortlistMeta,
+      [playerId]: { ...shortlistMeta[playerId], ...updates }
+    };
+    setShortlistMeta(next);
+    localStorage.setItem('fc24_shortlist_meta', JSON.stringify(next));
+  };
 
   // Fetch players matching IDs
   useEffect(() => {
@@ -119,6 +141,13 @@ export default function ShortlistPage() {
       : (valB as number) - (valA as number);
   });
 
+  // Filter sorted players by category
+  const filteredCategoryPlayers = sortedPlayers.filter((player: Player) => {
+    if (selectedCategoryFilter === 'ALL') return true;
+    const cat = shortlistMeta[player.player_id]?.category || 'Uncategorized';
+    return cat === selectedCategoryFilter;
+  });
+
   // Rating badge helpers
   const getRatingBadgeClass = (val: number) => {
     if (val >= 85) return 'badge-gold';
@@ -169,12 +198,12 @@ export default function ShortlistPage() {
           <h3 className="text-danger" style={{ marginBottom: '1rem' }}>Error Loading Shortlist</h3>
           <p>{error}</p>
         </div>
-      ) : sortedPlayers.length === 0 ? (
-        <div className="stats-card text-center" style={{ padding: '4rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-          <Star size={48} style={{ color: 'var(--text-muted)' }} />
-          <div>
-            <h2 style={{ marginBottom: '0.5rem', fontWeight: '800' }}>Your Shortlist is Empty</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+      ) : players.length === 0 ? (
+        <div className="empty-state">
+          <Star size={48} className="empty-state-icon" />
+          <div className="empty-state-text">
+            <h3>Your Shortlist is Empty</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               Add players to your shortlist while browsing in the Scouting search tool.
             </p>
           </div>
@@ -186,36 +215,61 @@ export default function ShortlistPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           <div className="scouting-toolbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <ArrowUpDown size={14} style={{ color: 'var(--accent-blue)' }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Sort:</span>
-              <select
-                className="filter-input"
-                style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto', background: 'var(--bg-sidebar)' }}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="overall">Overall (OVR)</option>
-                <option value="potential">Potential (POT)</option>
-                <option value="short_name">Player Name</option>
-                <option value="age">Age</option>
-                <option value="value_eur">Market Value</option>
-                <option value="wage_eur">Weekly Wage</option>
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Tag size={14} style={{ color: 'var(--accent-gold)' }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '700' }}>Category:</span>
+                <select
+                  className="filter-input"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto', background: 'var(--bg-sidebar)' }}
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                >
+                  <option value="ALL">All Categories</option>
+                  <option value="Target Musim Ini">Target Musim Ini</option>
+                  <option value="Long-term Wishlist">Long-term Wishlist</option>
+                  <option value="Backup Plan">Backup Plan</option>
+                  <option value="Uncategorized">Uncategorized</option>
+                </select>
+              </div>
 
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', gap: '0.2rem' }}
-                onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-              >
-                <span>{sortOrder.toUpperCase()}</span>
-                <span style={{ fontSize: '0.85rem' }}>{sortOrder === 'asc' ? '↑' : '↓'}</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ArrowUpDown size={14} style={{ color: 'var(--accent-blue)' }} />
+                <select
+                  className="filter-input"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', width: 'auto', background: 'var(--bg-sidebar)' }}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="overall">Overall (OVR)</option>
+                  <option value="potential">Potential (POT)</option>
+                  <option value="short_name">Player Name</option>
+                  <option value="age">Age</option>
+                  <option value="value_eur">Market Value</option>
+                  <option value="wage_eur">Weekly Wage</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
+                  onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                >
+                  {sortOrder === 'asc' ? '↑ ASC' : '↓ DESC'}
+                </button>
+              </div>
             </div>
 
-            <div className="scouting-results-header">
-              <span>Starred Targets: <strong>{sortedPlayers.length}</strong> players</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+              <button
+                onClick={() => window.print()}
+                className="btn btn-secondary btn-sm"
+                style={{ gap: '0.4rem', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+              >
+                <Printer size={14} /> Export / Print
+              </button>
+              <div className="scouting-results-header">
+                <span>Targets: <strong>{filteredCategoryPlayers.length}</strong></span>
+              </div>
             </div>
           </div>
 
@@ -226,94 +280,89 @@ export default function ShortlistPage() {
               <thead>
                 <tr>
                   <th style={{ width: '40px' }} className="text-center">Remove</th>
-                  <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('overall')}>
-                    OVR {sortBy === 'overall' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('potential')}>
-                    POT {sortBy === 'potential' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th className="sortable" onClick={() => handleSort('short_name')}>
-                    Name {sortBy === 'short_name' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th style={{ width: '100px' }} className="text-center">Pos</th>
-                  <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('age')}>
-                    Age {sortBy === 'age' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th>Club</th>
-                  <th>Nationality</th>
-                  <th className="sortable" onClick={() => handleSort('value_eur')} style={{ width: '100px' }}>
-                    Value {sortBy === 'value_eur' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th className="sortable" onClick={() => handleSort('wage_eur')} style={{ width: '100px' }}>
-                    Wage {sortBy === 'wage_eur' && <ArrowUpDown size={12} />}
-                  </th>
-                  <th style={{ width: '60px' }} className="text-center">View</th>
+                  <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('overall')}>OVR</th>
+                  <th className="sortable text-center" style={{ width: '60px' }} onClick={() => handleSort('potential')}>POT</th>
+                  <th className="sortable" onClick={() => handleSort('short_name')}>Name</th>
+                  <th style={{ width: '90px' }} className="text-center">Pos</th>
+                  <th>Category</th>
+                  <th>Scout Note</th>
+                  <th className="sortable" onClick={() => handleSort('value_eur')} style={{ width: '95px' }}>Value</th>
+                  <th className="sortable" onClick={() => handleSort('wage_eur')} style={{ width: '95px' }}>Wage</th>
+                  <th style={{ width: '50px' }} className="text-center">View</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedPlayers.map((player) => (
-                  <tr key={player.player_id}>
-                    <td className="text-center">
-                      <button 
-                        onClick={(e) => removePlayer(player.player_id, e)}
-                        className="btn btn-secondary btn-danger"
-                        style={{ padding: '0.4rem', borderRadius: '4px', border: 'none', background: 'rgba(255, 82, 82, 0.1)' }}
-                      >
-                        <Trash2 size={14} style={{ color: 'var(--accent-red)' }} />
-                      </button>
-                    </td>
-                    <td className="text-center">
-                      <span className={`badge-rating ${getRatingBadgeClass(player.overall)}`}>
-                        {player.overall}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={`badge-rating ${getRatingBadgeClass(player.potential)}`} style={{ opacity: 0.85 }}>
-                        {player.potential}
-                      </span>
-                    </td>
-                    <td>
-                      <Link href={`/players/${player.player_id}`} style={{ fontWeight: '700' }}>
-                        {player.short_name}
-                      </Link>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.long_name}</div>
-                    </td>
-                    <td className="text-center">
-                      <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
-                        {player.player_positions.split(',').map(pos => (
-                          <span key={pos} className={`badge-pos ${getPositionBadgeClass(pos)}`}>
-                            {pos.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="text-center">{player.age}</td>
-                    <td>
-                      <div style={{ fontWeight: '500' }}>{player.club_name || 'Free Agent'}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{player.league_name || 'No League'}</div>
-                    </td>
-                    <td>{player.nationality_name}</td>
-                    <td style={{ fontWeight: '700' }} className="text-green">
-                      {formatCurrency(player.value_eur)}
-                    </td>
-                    <td style={{ fontWeight: '700' }} className="text-gold">
-                      {formatCurrency(player.wage_eur)}
-                    </td>
-                    <td className="text-center">
-                      <Link href={`/players/${player.player_id}`} className="btn btn-secondary" style={{ padding: '0.4rem', borderRadius: '4px' }}>
-                        <Eye size={14} />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {filteredCategoryPlayers.map((player) => {
+                  const meta = shortlistMeta[player.player_id] || {};
+                  return (
+                    <tr key={player.player_id}>
+                      <td className="text-center">
+                        <button 
+                          onClick={(e) => removePlayer(player.player_id, e)}
+                          className="btn btn-secondary btn-danger"
+                          style={{ padding: '0.35rem', borderRadius: '4px' }}
+                        >
+                          <Trash2 size={12} style={{ color: 'var(--accent-red)' }} />
+                        </button>
+                      </td>
+                      <td className="text-center">
+                        <span className="badge-rating badge-gold">{player.overall}</span>
+                      </td>
+                      <td className="text-center">
+                        <span className="badge-rating badge-silver">{player.potential}</span>
+                      </td>
+                      <td>
+                        <Link href={`/players/${player.player_id}`} style={{ fontWeight: '700' }}>
+                          {player.short_name}
+                        </Link>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{player.club_name || 'Free Agent'}</div>
+                      </td>
+                      <td className="text-center">
+                        <span className="badge-pos pos-mid">{player.player_positions.split(',')[0]}</span>
+                      </td>
+                      <td>
+                        <select
+                          value={meta.category || 'Uncategorized'}
+                          onChange={(e) => updateMeta(player.player_id, { category: e.target.value as ShortlistCategory })}
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--accent-gold)', fontSize: '0.75rem', padding: '0.2rem 0.4rem', outline: 'none' }}
+                        >
+                          <option value="Target Musim Ini">🎯 Target Musim Ini</option>
+                          <option value="Long-term Wishlist">⭐ Long-term Wishlist</option>
+                          <option value="Backup Plan">🛡️ Backup Plan</option>
+                          <option value="Uncategorized">📌 Uncategorized</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          placeholder="Add scout note..."
+                          value={meta.note || ''}
+                          onChange={(e) => updateMeta(player.player_id, { note: e.target.value })}
+                          style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'white', fontSize: '0.78rem', padding: '0.25rem 0.5rem', outline: 'none' }}
+                        />
+                      </td>
+                      <td style={{ fontWeight: '700' }} className="text-green">
+                        {formatCurrencyWithSettings(player.value_eur)}
+                      </td>
+                      <td style={{ fontWeight: '700' }} className="text-gold">
+                        {formatCurrencyWithSettings(player.wage_eur)}
+                      </td>
+                      <td className="text-center">
+                        <Link href={`/players/${player.player_id}`} className="btn btn-secondary" style={{ padding: '0.35rem', borderRadius: '4px' }}>
+                          <Eye size={14} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+            </div>
           </div>
-        </div>
 
         {/* Mobile Only View */}
         <div className="mobile-only-cards">
-          {sortedPlayers.map((player) => {
+          {filteredCategoryPlayers.map((player) => {
             const ovrClass = player.overall >= 85 ? 'badge-box-ovr' : player.overall >= 75 ? 'badge-box-ovr-silver' : 'badge-box-ovr-bronze';
             const potClass = player.potential >= 88 ? 'badge-box-pot-high' : 'badge-box-pot';
 

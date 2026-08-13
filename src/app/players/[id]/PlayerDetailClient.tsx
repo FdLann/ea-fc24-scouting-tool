@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Star, DollarSign, SlidersHorizontal, Shield, Wallet
+  ArrowLeft, Star, Shield, Wallet, SlidersHorizontal, Info, Sparkles, CheckCircle2, FileText, Zap, Award 
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -17,6 +17,7 @@ import {
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import { calculateEstimatedWage, getLeagueTier, getGeneralPosition } from '@/lib/wageCalculator';
+import { formatCurrencyWithSettings } from '@/lib/settings';
 
 // Register ChartJS
 ChartJS.register(
@@ -36,6 +37,7 @@ interface PlayerDetailClientProps {
 export default function PlayerDetailClient({ player, estimatedWage }: PlayerDetailClientProps) {
   const router = useRouter();
   const [isStarred, setIsStarred] = useState(false);
+  const [similarPlayers, setSimilarPlayers] = useState<any[]>([]);
   
   // Interactive simulator states
   const [simOvr, setSimOvr] = useState<number>(player.overall);
@@ -44,7 +46,7 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
   const [simIr, setSimIr] = useState<number>(player.international_reputation || 1);
   const [simWage, setSimWage] = useState<number>(estimatedWage);
 
-  // Check shortlist on mount
+  // Check shortlist on mount and fetch similar
   useEffect(() => {
     const shortlist = localStorage.getItem('fc24_shortlist');
     if (shortlist) {
@@ -55,6 +57,19 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
         console.error(e);
       }
     }
+
+    const fetchSimilar = async () => {
+      try {
+        const res = await fetch(`/api/players/${player.player_id}/similar`);
+        if (res.ok) {
+          const data = await res.json();
+          setSimilarPlayers(data.similarPlayers || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSimilar();
   }, [player.player_id]);
 
   // Recalculate simulation wage when simulator inputs change
@@ -518,8 +533,56 @@ export default function PlayerDetailClient({ player, estimatedWage }: PlayerDeta
             ))}
           </div>
 
-        </div>
+          {/* Similar Players Section */}
+          {similarPlayers.length > 0 && (
+            <div className="stats-card" style={{ marginTop: '1.5rem' }}>
+              <h3 className="stats-card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} style={{ color: 'var(--accent-blue)' }} />
+                <span>SIMILAR PLAYERS (SCOUT RECOMMENDATIONS)</span>
+              </h3>
 
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                {similarPlayers.map((sim) => (
+                  <Link
+                    key={sim.player_id}
+                    href={`/players/${sim.player_id}`}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
+                      padding: '0.85rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', color: 'white', fontSize: '1rem' }}>{sim.short_name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{sim.club_name || 'Free Agent'}</div>
+                      </div>
+                      <span style={{ background: 'rgba(0, 229, 255, 0.15)', color: 'var(--accent-blue)', fontSize: '0.72rem', fontWeight: '900', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>
+                        {sim.similarityPercent}% Match
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.4rem' }}>
+                      <div style={{ display: 'flex', gap: '0.3rem' }}>
+                        <span className="badge-rating badge-gold" style={{ width: '28px', height: '28px', fontSize: '0.8rem' }}>{sim.overall}</span>
+                        <span className="badge-rating badge-silver" style={{ width: '28px', height: '28px', fontSize: '0.8rem' }}>{sim.potential}</span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: '800', color: 'var(--accent-green)', fontSize: '0.9rem' }}>
+                        {formatCurrencyWithSettings(sim.value_eur)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

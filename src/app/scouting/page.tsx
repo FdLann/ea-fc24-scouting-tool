@@ -23,6 +23,13 @@ export interface Player {
   preferred_foot: string;
   skill_moves: number;
   weak_foot: number;
+  club_contract_valid_until_year?: number | null;
+  release_clause_eur?: number | null;
+  player_traits?: string | null;
+  player_tags?: string | null;
+  work_rate?: string | null;
+  body_type?: string | null;
+  club_loaned_from?: string | null;
 }
 
 interface PageProps {
@@ -59,10 +66,10 @@ export default async function ScoutingPage({ searchParams }: PageProps) {
   const maxPotential = parseInt((resolvedParams.max_potential as string) || '99', 10);
   const minAge = parseInt((resolvedParams.min_age as string) || '15', 10);
   const maxAge = parseInt((resolvedParams.max_age as string) || '50', 10);
-  const minWage = parseInt((resolvedParams.min_wage as string) || '0', 10);
-  const maxWage = parseInt((resolvedParams.max_wage as string) || '1000000', 10);
-  const minValue = parseInt((resolvedParams.min_value as string) || '0', 10);
-  const maxValue = parseInt((resolvedParams.max_value as string) || '300000000', 10);
+  const minWage = parseInt((resolvedParams.minWage as string) || (resolvedParams.min_wage as string) || '0', 10);
+  const maxWage = parseInt((resolvedParams.maxWage as string) || (resolvedParams.max_wage as string) || '1000000', 10);
+  const minValue = parseInt((resolvedParams.minValue as string) || (resolvedParams.min_value as string) || '0', 10);
+  const maxValue = parseInt((resolvedParams.maxValue as string) || (resolvedParams.max_value as string) || '300000000', 10);
 
   // Skill Filters
   const minPace = parseInt((resolvedParams.min_pace as string) || '0', 10);
@@ -148,6 +155,33 @@ export default async function ScoutingPage({ searchParams }: PageProps) {
     queryParams.push(club);
   }
 
+  // Contract & Preset filters
+  const contractExpiry = (resolvedParams.contract_expiry as string) || (resolvedParams.max_contract_year as string) || '';
+  const isFreeAgent = resolvedParams.is_free_agent === 'true' || resolvedParams.free_agent === 'true';
+  const preset = (resolvedParams.preset as string) || '';
+
+  if (isFreeAgent) {
+    conditions.push("(club_name IS NULL OR club_name = '' OR club_name = 'Free Agent')");
+  }
+
+  if (contractExpiry) {
+    const year = parseInt(contractExpiry, 10);
+    if (!isNaN(year)) {
+      conditions.push("club_contract_valid_until_year <= ? AND club_name IS NOT NULL AND club_name != ''");
+      queryParams.push(year);
+    }
+  }
+
+  if (preset === 'wonderkids') {
+    conditions.push("age <= 21 AND potential >= 80");
+  } else if (preset === 'bargain') {
+    conditions.push("value_eur <= 10000000 AND overall >= 75 AND value_eur > 0");
+  } else if (preset === 'free_transfers') {
+    conditions.push("(club_name IS NULL OR club_name = '' OR club_name = 'Free Agent')");
+  } else if (preset === 'expiring') {
+    conditions.push("club_contract_valid_until_year <= 2024 AND club_name IS NOT NULL AND club_name != ''");
+  }
+
   if (league) {
     conditions.push("league_name = ?");
     queryParams.push(league);
@@ -165,7 +199,7 @@ export default async function ScoutingPage({ searchParams }: PageProps) {
   const total = countResult?.total || 0;
 
   // Get players
-  const selectCols = 'player_id, short_name, long_name, player_positions, overall, potential, value_eur, wage_eur, age, club_name, league_name, nationality_name, pace, shooting, passing, dribbling, defending, physic, preferred_foot, skill_moves, weak_foot';
+  const selectCols = 'player_id, short_name, long_name, player_positions, overall, potential, value_eur, wage_eur, age, club_name, league_name, nationality_name, pace, shooting, passing, dribbling, defending, physic, preferred_foot, skill_moves, weak_foot, club_contract_valid_until_year, release_clause_eur, player_traits, player_tags, work_rate, body_type, club_loaned_from';
   const players = db.prepare(`
     SELECT ${selectCols} 
     FROM players 
